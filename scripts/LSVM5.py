@@ -1,6 +1,6 @@
-# SVM (Gaussian Kernel)
+# SVM (Linear Kernel)
 
-def SVM_classification(dataset, ratio, filename):
+def LSVM_classification(dataset, ratio, filename):
 
     # Importing the libraries
     import numpy as np
@@ -18,7 +18,7 @@ def SVM_classification(dataset, ratio, filename):
     X_val = [x[0:-1] for x in X_val_seq]
     
     # One hot encode the sequence
-    from scripts.utils import one_hot_encoder
+    from utils import one_hot_encoder
     from Bio.Alphabet import IUPAC
     X_train = [one_hot_encoder(s = x, alphabet = IUPAC.protein) for x in X_train]
     X_train = [x.flatten('F') for x in X_train]
@@ -37,8 +37,8 @@ def SVM_classification(dataset, ratio, filename):
     X_test = sc.transform(X_test)"""
     
     # Fitting classifier to the Training set
-    from sklearn.svm import SVC
-    SVM_classifier = SVC(kernel = 'rbf')
+    from sklearn.svm import LinearSVC
+    SVM_classifier = LinearSVC()
     
     start_time = time.time()
     SVM_classifier.fit(X_train, y_train)
@@ -69,7 +69,7 @@ def SVM_classification(dataset, ratio, filename):
     plt.ylabel('True Positive Rate')
     plt.title('Linear SVM ROC curve (Train={})'.format(filename))
     plt.legend(loc = 'lower right')
-    savefig('figures/SVM_ROC_Test_{}.png'.format(filename))
+    savefig('figures/LSVM_ROC_Test_{}.png'.format(filename))
     plt.cla()
     plt.clf()
     
@@ -87,7 +87,7 @@ def SVM_classification(dataset, ratio, filename):
     plt.ylim([0.0, 1.05])
     plt.title('Linear SVM Precision-Recall curve (Train={})'.format(filename))
     plt.legend(loc = 'lower right')
-    savefig('figures/SVM_P-R_Test_{}.png'.format(filename))
+    savefig('figures/LSVM_P-R_Test_{}.png'.format(filename))
     plt.cla()
     plt.clf()
     
@@ -102,3 +102,4 @@ def SVM_classification(dataset, ratio, filename):
     stats = np.array([acc, prec, recall, train_time, test_time])
     
     return y_pred, stats
+    

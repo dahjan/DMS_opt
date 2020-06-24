@@ -20,7 +20,7 @@ def RNN_classification(dataset, ratio, filename):
     X_val = [x[0:-1] for x in X_val_seq]
 
     # One hot encode the sequences
-    from scripts.utils import one_hot_encoder
+    from utils import one_hot_encoder
     from Bio.Alphabet import IUPAC
     
     X_train = [one_hot_encoder(s = x, alphabet = IUPAC.protein) for x in X_train]

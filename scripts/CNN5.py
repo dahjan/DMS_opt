@@ -1,7 +1,13 @@
-# Artificial Neural Network
+#!/usr/bin/env python3
+# -*- coding: utf-8 -*-
+"""
+Created on Wed Mar 20 15:37:10 2019
 
-def ANN_classification(dataset, ratio, filename):
+@author: dmason
+"""
 
+def CNN_classification(dataset, ratio, filename):
+    
     # Data Preprocessing
 
     # Importing the libraries
@@ -9,7 +15,12 @@ def ANN_classification(dataset, ratio, filename):
     import matplotlib.pyplot as plt
     import pandas as pd
     import time
-
+    
+    # Custom modules
+    from utils import create_cnn
+    from utils import one_hot_encoder
+    from Bio.Alphabet import IUPAC
+    
     # Split the data set into training, test1 (train split), and test2 (10/90)
     # Trim off 5' CSR and 3' YW amino acids
     X_train = dataset.train.loc[:, 'AASeq'].values
@@ -18,34 +29,30 @@ def ANN_classification(dataset, ratio, filename):
     X_test = [x[0:-1] for x in X_test_seq]
     X_val_seq = dataset.val.loc[:, 'AASeq'].values
     X_val = [x[0:-1] for x in X_val_seq]
-
-    # One hot encode the sequence
-    from scripts.utils import one_hot_encoder
-    from Bio.Alphabet import IUPAC
-    X_train = [one_hot_encoder(s = x, alphabet = IUPAC.protein) for x in X_train]
-    X_train = [x.flatten('F') for x in X_train]
-    X_train = np.asarray(X_train)
-    X_test = [one_hot_encoder(s = x, alphabet = IUPAC.protein) for x in X_test]
-    X_test = [x.flatten('F') for x in X_test]
-    X_test = np.asarray(X_test)
-    X_val = [one_hot_encoder(s = x, alphabet = IUPAC.protein) for x in X_val]
-    X_val = [x.flatten('F') for x in X_val]
-    X_val = np.asarray(X_val)
     
+    # One hot encode the sequences
+    X_train = [one_hot_encoder(s = x, alphabet = IUPAC.protein) for x in X_train]
+    X_train = np.transpose(np.asarray(X_train), (0, 2, 1))
+    
+    X_test = [one_hot_encoder(s = x, alphabet = IUPAC.protein) for x in X_test]
+    X_test = np.transpose(np.asarray(X_test), (0, 2, 1))
+    
+    X_val = [one_hot_encoder(s = x, alphabet = IUPAC.protein) for x in X_val]
+    X_val = np.transpose(np.asarray(X_val), (0, 2, 1))
+
+    # Define the class labels
     y_train = dataset.train.loc[:, 'AgClass'].values
     y_test = dataset.test.loc[:, 'AgClass'].values
     y_val = dataset.val.loc[:, 'AgClass'].values
     
-    # Building the ANN
-
-    # Importing the Keras libraries and packages
-    from keras.models import Sequential
-    from keras.layers import Dense
-    from keras.layers import Dropout
+    params = [['CONV', 400, 3, 1],
+              ['DROP', 0.5],
+              ['POOL', 2, 1],
+              ['FLAT'],
+              ['DENSE', 50]]
+    
     from keras.callbacks import Callback
     from keras.optimizers import Adam
-    
-    ada_optimizer = Adam(learning_rate=0.0001)
     
     class TimeHistory(Callback):
         def on_train_begin(self, logs={}):
@@ -58,43 +65,29 @@ def ANN_classification(dataset, ratio, filename):
             self.times.append(time.time() - self.epoch_time_start)
             
     time_callback = TimeHistory()
-        
-    # Initializing the ANN
-    ANN_classifier = Sequential()
     
-    # Adding the input layer and the first hidden layer (activation function: Rectifier; 140 input, 50 nodes)
-    ANN_classifier.add(Dense(units = 70, kernel_initializer = 'uniform', activation = 'relu', input_dim = 200))
-    ANN_classifier.add(Dropout(rate = 0.1))
+    model = create_cnn(params, 'relu', None)
     
-    # Adding the second hidden layer (activation function: Rectifier; 50 nodes)
-    ANN_classifier.add(Dense(units = 70, kernel_initializer = 'uniform', activation = 'relu'))
-    ANN_classifier.add(Dropout(rate = 0.1))
+    opt = Adam(learning_rate=0.000075)
     
-    # Adding the third hidden layer (activation function: Rectifier; 50 nodes)
-    ANN_classifier.add(Dense(units = 70, kernel_initializer = 'uniform', activation = 'relu'))
-    ANN_classifier.add(Dropout(rate = 0.1))
+    model.compile(optimizer=opt, loss='binary_crossentropy',
+                  metrics=['accuracy'])
     
-    # Adding the output layer (activation function: Sigmoid)
-    ANN_classifier.add(Dense(units = 1, kernel_initializer = 'uniform', activation = 'sigmoid'))
-    
-    # Compiling the ANN
-    # adam = stochastic gradient descent; binary_crossentropy = logarithmic loss
-    ANN_classifier.compile(optimizer = ada_optimizer, loss = 'binary_crossentropy', metrics = ['accuracy'])    
-    
-    # Fitting the ANN to the Training set
     start_time = time.time()
-    history = ANN_classifier.fit(x = X_train, y = y_train, shuffle = True, validation_data = (X_val, y_val), batch_size = 16, epochs = 20, callbacks=[time_callback])
+    history = model.fit(x = X_train, y = y_train, shuffle = True, validation_data = (X_val, y_val), epochs = 20, batch_size = 16, callbacks=[time_callback])
     end_time = time.time()
     train_time = end_time - start_time
     
     # times = time_callback.times
     
+    # Make prediction
     start_time = time.time()
-    y_pred = ANN_classifier.predict(x = X_test)
+    y_pred = model.predict(x = X_test)
     end_time = time.time()
     test_time = end_time - start_time
     
     
+
     # Evaluate and plot model performance on test sets
     from sklearn.metrics import roc_curve, auc, precision_recall_curve, average_precision_score
     from inspect import signature
@@ -106,8 +99,8 @@ def ANN_classification(dataset, ratio, filename):
     plt.title('Model accuracy (Train={})'.format(filename))
     plt.ylabel('Accuracy')
     plt.xlabel('Epoch')
-    plt.legend(['Train', 'Validation'], loc='upper left')
-    savefig('figures/ANN_Acc_{}.png'.format(filename))
+    plt.legend(['Train', 'Test'], loc='upper left')
+    savefig('figures/CNN_Acc_{}.png'.format(filename))
     plt.cla()
     plt.clf()
     
@@ -117,8 +110,8 @@ def ANN_classification(dataset, ratio, filename):
     plt.title('Model loss (Train={})'.format(filename))
     plt.ylabel('Loss')
     plt.xlabel('Epoch')
-    plt.legend(['Train', 'Validation'], loc='upper left')
-    savefig('figures/ANN_loss_{}.png'.format(filename))
+    plt.legend(['Train', 'Test'], loc='upper left')
+    savefig('figures/CNN_loss_{}.png'.format(filename))
     plt.cla()
     plt.clf()
     
@@ -133,14 +126,13 @@ def ANN_classification(dataset, ratio, filename):
     plt.ylim([0.0, 1.05])
     plt.xlabel('False Positive Rate')
     plt.ylabel('True Positive Rate')
-    plt.title('ANN ROC curve (Train={})'.format(filename))
+    plt.title('CNN ROC curve (Train={})'.format(filename))
     plt.legend(loc = 'lower right')
-    savefig('figures/ANN_ROC_test_{}.png'.format(filename))
+    savefig('figures/CNN_ROC_Test_{}.png'.format(filename))
     plt.cla()
     plt.clf()
     
-    
-    # Precision-recall curve on test1
+    # Precision-recall curve on test2
     precision, recall, thresholds = precision_recall_curve(y_test, y_pred)
     average_precision = average_precision_score(y_test, y_pred)
     
@@ -153,9 +145,9 @@ def ANN_classification(dataset, ratio, filename):
     plt.ylabel('Precision')
     plt.xlim([0.0, 1.0])
     plt.ylim([0.0, 1.05])
-    plt.title('ANN Precision-Recall curve (Train={})'.format(filename))
+    plt.title('CNN Precision-Recall curve (Train={})'.format(filename))
     plt.legend(loc = 'lower right')
-    savefig('figures/ANN_P-R_test_{}.png'.format(filename))
+    savefig('figures/CNN_P-R_Test_{}.png'.format(filename))
     plt.cla()
     plt.clf()
     
