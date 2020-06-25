@@ -1,5 +1,3 @@
-#!/usr/bin/env python3
-# -*- coding: utf-8 -*-
 """
 Created on Wed Jan 23 08:52:23 2019
 
@@ -7,70 +5,16 @@ Created on Wed Jan 23 08:52:23 2019
 """
 
 # Importing libraries
-import pandas as pd
-import numpy as np
 import keras
+import numpy as np
+import pandas as pd
+from pylab import savefig
+from inspect import signature
 from Bio.Alphabet import IUPAC
+import matplotlib.pyplot as plt
 from sklearn.model_selection import train_test_split
-
-
-def create_cnn(units_per_layer, activation, regularizer):
-    """
-    Generate the CNN layers with Keras wrapper
-
-    Parameters
-    ---
-    units_per_layer: architecture features in list format, i.e.:
-        Filter information: [CONV, # filters, kernel size, stride]
-        Max Pool information: [POOL, pool size, stride]
-        Dropout information: [DROP, dropout rate]
-        Flatten: [FLAT]
-        Dense layer: [DENSE, number nodes]
-
-    Activation: Activation function, i.e. ReLU, softmax
-
-    Regularizer: Kernel and bias regularizer in convulational and dense
-        layers, i.e., regularizers.l1(0.01)
-
-    """
-
-    model = keras.Sequential()
-    model.add(keras.layers.InputLayer((10, 20)))
-
-    # Build network
-
-    print('Building CNN network with the following architecture: {}\n'.format(
-        units_per_layer))
-
-    for i, units in enumerate(units_per_layer):
-
-        if units[0] == 'CONV':
-            model.add(keras.layers.Conv1D(filters=units[1],
-                                          kernel_size=units[2],
-                                          strides=units[3],
-                                          activation=activation,
-                                          kernel_regularizer=regularizer,
-                                          bias_regularizer=regularizer,
-                                          padding='same'))
-        elif units[0] == 'POOL':
-            model.add(keras.layers.MaxPool1D(pool_size=units[1],
-                                             strides=units[2]))
-        elif units[0] == 'DENSE':
-            model.add(keras.layers.Dense(units=units[1],
-                                         activation=activation,
-                                         kernel_regularizer=regularizer,
-                                         bias_regularizer=regularizer))
-        elif units[0] == 'DROP':
-            model.add(keras.layers.Dropout(rate=units[1]))
-        elif units[0] == 'FLAT':
-            model.add(keras.layers.Flatten())
-        else:
-            print('Layer type not implemented')
-
-    model.add(keras.layers.Dense(1, activation='sigmoid'))
-    model.summary()
-
-    return model
+from sklearn.metrics import roc_curve, auc, precision_recall_curve, \
+    average_precision_score
 
 
 def mixcr_input(file_name, Ag_class):
@@ -115,10 +59,11 @@ def mixcr_input(file_name, Ag_class):
 
 def data_split(Ag_pos, Ag_neg):
     """
-    Create a collection of the data set and split into the training set
-    and two test sets. One test set contains the same class split as the
-    overall data set, one test set contains a class split of approx.
-    10% binders and 90% non-binders.
+    Create a collection of the data set and split into the
+    training set and two test sets. One test set contains
+    the same class split as the overall data set, the other
+    test set contains a class split of approx. 10% binders
+    and 90% non-binders.
 
     Parameters
     ---
@@ -131,30 +76,35 @@ def data_split(Ag_pos, Ag_neg):
         def __init__(self, **kwds):
             self.__dict__.update(kwds)
 
+    # Combine the positive and negative data frames
     Ag_combined = pd.concat([Ag_pos, Ag_neg])
     Ag_combined = Ag_combined.drop_duplicates(subset='AASeq')
     Ag_combined = Ag_combined.sample(frac=1).reset_index(drop=True)
 
+    # 70%/30% training test data split
     idx = np.arange(0, Ag_combined.shape[0])
     idx_train, idx_test = train_test_split(
-        idx, stratify=Ag_combined['AgClass'], test_size=0.3)
+        idx, stratify=Ag_combined['AgClass'], test_size=0.3
+    )
 
+    # 50%/50% training test data split
     idx2 = np.arange(0, idx_test.shape[0])
-
     idx_val, idx_test2 = train_test_split(
-        idx2, stratify=Ag_combined.iloc[idx_test, :]['AgClass'], test_size=0.5)
+        idx2, stratify=Ag_combined.iloc[idx_test, :]['AgClass'], test_size=0.5
+    )
 
+    # Create the test set with a 90%/10% non-binder/binder split
     Test_AgNeg_amt = len(Ag_combined.iloc[idx_test2, :]['AgClass']) - \
         Ag_combined.iloc[idx_test, :].iloc[idx_test2, :]['AgClass'].sum()
     Adj_test_amt = int(Test_AgNeg_amt/0.90)
     Test_AgPos_amt = Adj_test_amt - Test_AgNeg_amt
-
     Test_AgPos = Ag_combined.iloc[idx_test, :].iloc[idx_test2, :].iloc[np.where(
         Ag_combined.iloc[idx_test, :].iloc[idx_test2, :]['AgClass'] == 1)[0], :]
     Test_AgNeg = Ag_combined.iloc[idx_test, :].iloc[idx_test2, :].iloc[np.where(
         Ag_combined.iloc[idx_test, :].iloc[idx_test2, :]['AgClass'] == 0)[0], :]
     Updated_test = pd.concat([Test_AgNeg, Test_AgPos[0:Test_AgPos_amt]])
 
+    # Create collection
     Seq_Ag_data = Collection(train=Ag_combined.iloc[idx_train, :],
                              val=Ag_combined.iloc[idx_test,
                                                   :].iloc[idx_val, :],
@@ -169,9 +119,9 @@ def data_split_adj(Ag_pos, Ag_neg, ratio):
     Create a collection of the data set and split into the
     training set and two test sets. Data set is adjusted to
     the desired class split ratio. One test set contains the
-    same class split as the overall data set, one test set
-    contains a class split of approx. 10% binders and 90%
-    non-binders.
+    same class split as the overall data set, the other test
+    set contains a class split of approx. 10% binders and
+    90% non-binders.
 
     Parameters
     ---
@@ -227,7 +177,7 @@ def data_split_adj(Ag_pos, Ag_neg, ratio):
         idx, stratify=Ag_combined['AgClass'], test_size=0.3
     )
 
-    # 50/50 training test data splitn
+    # 50/50 training test data split
     idx2 = np.arange(0, idx_test.shape[0])
     idx_val, idx_test2 = train_test_split(
         idx2, stratify=Ag_combined.iloc[idx_test, :]['AgClass'], test_size=0.5
@@ -274,34 +224,238 @@ def one_hot_encoder(s,  alphabet):
     return x
 
 
-def one_hot_decoder(x, alphabet):
+# def one_hot_decoder(x, alphabet):
+#     """
+#     Decodes a one-hot encoding to a biological sequence
+#
+#     Parameters
+#     ---
+#     x: array, n_size_alphabet, n_length_string
+#         Sequence as one-hot encoding
+#     alphabet: Alphabet object, http://biopython.org/DIST/docs/api/Bio.Alphabet.IUPAC-module.html
+#
+#     Example
+#     ---
+#     encoding = one_hot_encoder(sequence, IUPAC.unambiguous_dna)
+#     one_hot_decoder(encoding, IUPAC.unambiguous_dna)
+#
+#     Returns
+#     ---
+#     s : str, decoded sequence
+#     """
+#
+#     d = {a: i for i, a in enumerate(alphabet.letters)}
+#     inv_d = {i: a for a, i in d.items()}
+#     s = (''.join(str(inv_d[i]) for i in np.argmax(x, axis=0)))
+#
+#     return s
+
+
+def create_ann():
     """
-    Decodes a one-hot encoding to a biological sequence
+    Generate the ANN layers with Keras wrapper with hard-coded
+    layers and activation functions.
+    """
+
+    # Initialize the ANN
+    model = keras.Sequential()
+
+    # Input layer and 1st hidden layer
+    # Activation function: Rectifier; 140 input, 50 nodes
+    model.add(
+        keras.layers.Dense(units=70,
+                           kernel_initializer='uniform',
+                           activation='relu',
+                           input_dim=200)
+    )
+    model.add(keras.layers.Dropout(rate=0.1))
+
+    # 2nd hidden layer
+    # Activation function: Rectifier; 50 nodes
+    model.add(
+        keras.layers.Dense(units=70,
+                           kernel_initializer='uniform',
+                           activation='relu')
+    )
+    model.add(keras.layers.Dropout(rate=0.1))
+
+    # 3rd hidden layer
+    # Activation function: Rectifier; 50 nodes
+    model.add(
+        keras.layers.Dense(units=70,
+                           kernel_initializer='uniform',
+                           activation='relu')
+    )
+    model.add(keras.layers.Dropout(rate=0.1))
+
+    # Output layer
+    # Activation function: Sigmoid
+    model.add(
+        keras.layers.Dense(units=1,
+                           kernel_initializer='uniform',
+                           activation='sigmoid')
+    )
+
+    return model
+
+
+def create_cnn(units_per_layer, activation, regularizer):
+    """
+    Generate the CNN layers with Keras wrapper
 
     Parameters
     ---
-    x: array, n_size_alphabet, n_length_string
-        Sequence as one-hot encoding
-    alphabet: Alphabet object, http://biopython.org/DIST/docs/api/Bio.Alphabet.IUPAC-module.html
+    units_per_layer: architecture features in list format, i.e.:
+        Filter information: [CONV, # filters, kernel size, stride]
+        Max Pool information: [POOL, pool size, stride]
+        Dropout information: [DROP, dropout rate]
+        Flatten: [FLAT]
+        Dense layer: [DENSE, number nodes]
 
-    Example
-    ---
-    encoding = one_hot_encoder(sequence, IUPAC.unambiguous_dna)
-    one_hot_decoder(encoding, IUPAC.unambiguous_dna)
+    Activation: Activation function, i.e. ReLU, softmax
 
-    Returns
-    ---
-    s : str, decoded sequence
+    Regularizer: Kernel and bias regularizer in convulational and dense
+        layers, i.e., regularizers.l1(0.01)
+
     """
 
-    d = {a: i for i, a in enumerate(alphabet.letters)}
-    inv_d = {i: a for a, i in d.items()}
-    s = (''.join(str(inv_d[i]) for i in np.argmax(x, axis=0)))
+    # Initialize the CNN
+    model = keras.Sequential()
 
-    return s
+    # Input layer
+    model.add(keras.layers.InputLayer((10, 20)))
+
+    # Build network
+    for i, units in enumerate(units_per_layer):
+        if units[0] == 'CONV':
+            model.add(keras.layers.Conv1D(filters=units[1],
+                                          kernel_size=units[2],
+                                          strides=units[3],
+                                          activation=activation,
+                                          kernel_regularizer=regularizer,
+                                          bias_regularizer=regularizer,
+                                          padding='same'))
+        elif units[0] == 'POOL':
+            model.add(keras.layers.MaxPool1D(pool_size=units[1],
+                                             strides=units[2]))
+        elif units[0] == 'DENSE':
+            model.add(keras.layers.Dense(units=units[1],
+                                         activation=activation,
+                                         kernel_regularizer=regularizer,
+                                         bias_regularizer=regularizer))
+        elif units[0] == 'DROP':
+            model.add(keras.layers.Dropout(rate=units[1]))
+        elif units[0] == 'FLAT':
+            model.add(keras.layers.Flatten())
+        else:
+            raise NotImplementedError('Layer type not implemented')
+
+    # Output layer
+    # Activation function: Sigmoid
+    model.add(keras.layers.Dense(1, activation='sigmoid'))
+
+    return model
 
 
-def seq_classification(AA_per_pos, classifier):
+def create_rnn():
+    """
+    Generate the ANN layers with Keras wrapper with hard-coded
+    layers and activation functions.
+    """
+
+    # Initialize the RNN
+    model = keras.Sequential()
+
+    # 1st LSTM layer and Dropout regularization
+    model.add(keras.layers.LSTM(units=40,
+                                return_sequences=True,
+                                input_shape=(10, 20)))
+    model.add(keras.layers.Dropout(rate=0.1))
+
+    # 2nd LSTM layer and Dropout regularization
+    model.add(keras.layers.LSTM(units=40,
+                                return_sequences=True))
+    model.add(keras.layers.Dropout(rate=0.1))
+
+    # 3rd LSTM layer and Dropout regularization
+    model.add(keras.layers.LSTM(units=40,
+                                return_sequences=False))
+    model.add(keras.layers.Dropout(rate=0.1))
+
+    # Output layer
+    model.add(keras.layers.Dense(units=1,
+                                 activation='sigmoid'))
+
+    return model
+
+
+def plot_ROC_curve(y_test, y_score, plot_title, plot_dir):
+    """
+    Plots a Receiver Operating Characteristic (ROC) curve in
+    the specified output directory.
+
+    Parameters
+    ---
+    y_test: the labels for binding- and non-binding sequences.
+    y_score: the predicted probabilities from the classifier.
+    plot_title: the title of the plot.
+    plot_dir: the directory for plotting.
+    """
+
+    fpr, tpr, thresholds = roc_curve(y_test, y_score)
+    roc_auc = auc(fpr, tpr)
+    plt.plot(fpr, tpr, color='darkorange',
+             lw=2, label='ROC curve (area - %0.2f)' % roc_auc)
+    plt.plot([0, 1], [0, 1], color='navy', lw=2, linestyle='--')
+    plt.xlim([0.0, 1.0])
+    plt.ylim([0.0, 1.05])
+    plt.xlabel('False Positive Rate')
+    plt.ylabel('True Positive Rate')
+    plt.title(plot_title)
+    plt.legend(loc='lower right')
+    savefig(plot_dir)
+    plt.cla()
+    plt.clf()
+
+
+def plot_PR_curve(y_test, y_score, plot_title, plot_dir):
+    """
+    Plots a precision-recall (PR) curve in the specified
+    output directory.
+
+    Parameters
+    ---
+    y_test: the labels for binding- and non-binding sequences.
+    y_score: the predicted probabilities from the classifier.
+    plot_title: the title of the plot.
+    plot_dir: the directory and filename for plotting.
+    """
+
+    precision, recall, thresholds = precision_recall_curve(
+        y_test, y_score
+    )
+    average_precision = average_precision_score(y_test, y_score)
+
+    step_kwargs = ({'step': 'post'}
+                   if 'step' in signature(plt.fill_between).parameters
+                   else {})
+    plt.step(recall, precision, color='navy', alpha=0.2, where='post',
+             label='Avg. Precision: {0:0.2f}'.format(average_precision))
+    plt.fill_between(recall, precision, alpha=0.2, color='navy', **step_kwargs)
+    plt.xlabel('Recall')
+    plt.ylabel('Precision')
+    plt.xlim([0.0, 1.0])
+    plt.ylim([0.0, 1.05])
+    plt.title(plot_title)
+    plt.legend(loc='lower right')
+    savefig(plot_dir)
+    plt.cla()
+    plt.clf()
+
+
+# TODO: Continue here in checking the function!!
+
+def seq_classification(classifier):
     """
     In silico generate sequences and classify them as a binding or non-binding
     sequence respectively.
@@ -315,17 +469,37 @@ def seq_classification(AA_per_pos, classifier):
 
     """
 
+    # Define valid amino acids per position
+    AA_per_pos = [
+        ['Y', 'W'],
+        ['A', 'D', 'E', 'G', 'H', 'I', 'K', 'L',
+         'N', 'P', 'Q', 'R', 'S', 'T', 'V'],
+        ['A', 'D', 'E', 'G', 'H', 'I', 'K', 'L',
+         'N', 'P', 'Q', 'R', 'S', 'T', 'V'],
+        ['A', 'D', 'F', 'G', 'H', 'I', 'L', 'N',
+         'P', 'R', 'S', 'T', 'V', 'Y'],
+        ['A', 'G', 'H', 'S', ],
+        ['F', 'L'],
+        ['Y'],
+        ['A', 'E', 'K', 'L', 'P', 'Q', 'T', 'V'],
+        ['F', 'H', 'I', 'L', 'N', 'Y'],
+        ['A', 'D', 'E', 'H', 'I', 'K', 'L', 'M',
+         'N', 'P', 'Q', 'T', 'V']]
+
     dim = []
     for x in AA_per_pos:
+        # Get number of possible amino acids
         dim.append(len(x))
 
         idx = [0]*len(dim)
-        pos = 0
+        print(idx)
         current_seq = np.empty(0, dtype=object)
         pos_seq = np.empty(0, dtype=str)
         pos_pred = np.empty(0, dtype=float)
 
+    print(schnuebl)
     counter = 1
+    pos = 0
 
     while(1):
         l = []

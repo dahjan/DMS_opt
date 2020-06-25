@@ -56,9 +56,8 @@ mHER_H3_AgNeg = mHER_H3_AgNeg.drop_duplicates(subset='AASeq')
 # Remove 'CAR/CSR' motif and last amino acid
 mHER_H3_AgNeg['AASeq'] = [x[3:-1] for x in mHER_H3_AgNeg['AASeq']]
 
-# Shuffle sequences
-mHER_H3_AgNeg = mHER_H3_AgNeg.sample(frac=1)
-mHER_H3_AgNeg.reset_index(drop=True, inplace=True)
+# Shuffle sequences and reset index
+mHER_H3_AgNeg = mHER_H3_AgNeg.sample(frac=1).reset_index(drop=True)
 
 # TODO: Functionalize this!!
 
@@ -83,199 +82,78 @@ mHER_H3_AgPos = mHER_H3_AgPos.drop_duplicates(subset='AASeq')
 # Remove 'CAR/CSR' motif and last amino acid
 mHER_H3_AgPos['AASeq'] = [x[3:-1] for x in mHER_H3_AgPos['AASeq']]
 
-# Shuffle sequences
-mHER_H3_AgPos = mHER_H3_AgPos.sample(frac=1)
-mHER_H3_AgPos.reset_index(drop=True, inplace=True)
-
-
-# ----------------------
-# Load and prepare data
-# ----------------------
+# Shuffle sequences and reset index
+mHER_H3_AgPos = mHER_H3_AgPos.sample(frac=1).reset_index(drop=True)
 
 # Create collection with training and test split
-mHER_all, unused_seq = data_split_adj(mHER_H3_AgPos, mHER_H3_AgNeg, 0.5)
-
-# TODO: I think the copy statements can be replaced by pandas.copy
+mHER_all, unused_seq = data_split_adj(mHER_H3_AgPos, mHER_H3_AgNeg, ratio=0.5)
 
 # Create shallow copy of the data collection
-mHER_yeast_sub = copy.copy(mHER_all)
-
-# TODO: Clean those columns, what do they do?
-
-ML_columns = ('Train_size', 'LogReg_acc', 'LogReg_prec', 'LogReg_recall',
-              'LogReg_train_time', 'LogReg_test_time', 'LogReg2D_acc',
-              'LogReg2D_prec', 'LogReg2D_recall', 'LogReg2D_train_time',
-              'LogReg2D_test_time', 'KNN_acc', 'KNN_prec', 'KNN_recall',
-              'KNN_train_time', 'KNN_test_time', 'LSVM_acc', 'LSVM_prec',
-              'LSVM_recall', 'LSVM_train_time', 'LSVM_test_time', 'SVM_acc',
-              'SVM_prec', 'SVM_recall', 'SVM_train_time', 'SVM_test_time',
-              'RF_acc', 'RF_prec', 'RF_recall', 'RF_train_time',
-              'RF_test_time', 'ANN_acc', 'ANN_prec', 'ANN_recall',
-              'ANN_train_time', 'ANN_test_time', 'CNN_acc', 'CNN_prec',
-              'CNN_recall', 'CNN_train_time', 'CNN_test_time', 'RNN_acc',
-              'RNN_prec', 'RNN_recall', 'RNN_train_time', 'RNN_test_time')
-
-ML_models = pd.DataFrame(columns=ML_columns)
-
-# TODO: Fix range here
-for x in range(1, 9):
-    # Hyperparmameter definition
-    y = 2**x
-    z = 100*y
-    if z > 15000:
-        z = 15000
-
-    # Sample z sequences from the training set
-    mHER_yeast_sub.train = copy.copy(mHER_all.train)
-    mHER_yeast_sub.train = mHER_yeast_sub.train.sample(n=z)
-    mHER_yeast_sub.train.reset_index(drop=True, inplace=True)
-
-    # Select test data
-    ML_df = mHER_yeast_sub.test
-
-    # TODO: This can be done nicer!
-    LogReg_pred, LogReg_stats = LogReg_classification(
-        mHER_yeast_sub, z, '{}'.format(z)
-    )
-    ML_df['LogReg_pred'] = LogReg_pred
-
-    LogReg2D_pred, LogReg2D_stats = LogReg2D_classification(
-        mHER_yeast_sub, z, '{}'.format(z)
-    )
-    ML_df['LogReg2D_pred'] = LogReg2D_pred
-
-    KNN_pred, KNN_stats = KNN_classification(
-        mHER_yeast_sub, z, '{}'.format(z)
-    )
-    ML_df['KNN_pred'] = KNN_pred
-
-    LSVM_pred, LSVM_stats = LSVM_classification(
-        mHER_yeast_sub, z, '{}'.format(z)
-    )
-    ML_df['LSVM_pred'] = LSVM_pred
-
-    SVM_pred, SVM_stats = SVM_classification(
-        mHER_yeast_sub, z, '{}'.format(z)
-    )
-    ML_df['SVM_pred'] = SVM_pred
-
-    RF_pred, RF_stats = RF_classification(
-        mHER_yeast_sub, z, '{}'.format(z)
-    )
-    ML_df['RF_pred'] = RF_pred
-
-    ANN_pred, ANN_stats = ANN_classification(
-        mHER_yeast_sub, z, '{}'.format(z)
-    )
-    ML_df['ANN_pred'] = ANN_pred
-
-    CNN_pred, CNN_stats = CNN_classification(
-        mHER_yeast_sub, z, '{}'.format(z)
-    )
-    ML_df['CNN_pred'] = CNN_pred
-
-    RNN_pred, RNN_stats = RNN_classification(
-        mHER_yeast_sub, z, '{}'.format(z)
-    )
-    ML_df['RNN_pred'] = RNN_pred
-
-    # TODO: Make the directory before saving it!!
-    ML_df.to_csv(
-        'figures/ML_pred_data_TrainSize_14Jun_{}.csv'.format(z)
-    )
-    all_stats = np.concatenate(
-        (np.array([x]), LogReg_stats, LogReg2D_stats, KNN_stats, LSVM_stats,
-         SVM_stats, RF_stats, ANN_stats, CNN_stats, RNN_stats)
-    )
-    ML_models = ML_models.append(
-        pd.DataFrame([all_stats], columns=list(ML_columns)), ignore_index=True
-    )
-
-ML_models.to_csv('figures/ML_model_stats_TrainSize_14Jun.csv')
-
-# TODO: Imports at the beginning
-
-mHER_all, unused_seq = data_split_adj(mHER_H3_AgPos, mHER_H3_AgNeg, 0.5)
-
-
-# TODO: Why is this copied again?
 mHER_all_copy = copy.copy(mHER_all)
 
-# TODO: I think this is duplicatd as well?
 
-ML_columns = ('Train_size', 'LogReg_acc', 'LogReg_prec', 'LogReg_recall', 'LogReg_train_time', 'LogReg_test_time', 'LogReg2D_acc', 'LogReg2D_prec', 'LogReg2D_recall', 'LogReg2D_train_time', 'LogReg2D_test_time', 'KNN_acc', 'KNN_prec', 'KNN_recall', 'KNN_train_time', 'KNN_test_time', 'LSVM_acc', 'LSVM_prec', 'LSVM_recall', 'LSVM_train_time', 'LSVM_test_time',
-              'SVM_acc', 'SVM_prec', 'SVM_recall', 'SVM_train_time', 'SVM_test_time', 'RF_acc', 'RF_prec', 'RF_recall', 'RF_train_time', 'RF_test_time', 'ANN_acc', 'ANN_prec', 'ANN_recall', 'ANN_train_time', 'ANN_test_time', 'CNN_acc', 'CNN_prec', 'CNN_recall', 'CNN_train_time', 'CNN_test_time', 'RNN_acc', 'RNN_prec', 'RNN_recall', 'RNN_train_time', 'RNN_test_time')
-ML_models = pd.DataFrame(columns=('Train_size', 'LogReg_acc', 'LogReg_prec', 'LogReg_recall', 'LogReg_train_time', 'LogReg_test_time', 'LogReg2D_acc', 'LogReg2D_prec', 'LogReg2D_recall', 'LogReg2D_train_time', 'LogReg2D_test_time', 'KNN_acc', 'KNN_prec', 'KNN_recall', 'KNN_train_time', 'KNN_test_time', 'LSVM_acc', 'LSVM_prec', 'LSVM_recall', 'LSVM_train_time', 'LSVM_test_time',
-                                  'SVM_acc', 'SVM_prec', 'SVM_recall', 'SVM_train_time', 'SVM_test_time', 'RF_acc', 'RF_prec', 'RF_recall', 'RF_train_time', 'RF_test_time', 'ANN_acc', 'ANN_prec', 'ANN_recall', 'ANN_train_time', 'ANN_test_time', 'CNN_acc', 'CNN_prec', 'CNN_recall', 'CNN_train_time', 'CNN_test_time', 'RNN_acc', 'RNN_prec', 'RNN_recall', 'RNN_train_time', 'RNN_test_time'))
+# ----------------------
+# Run classifiers
+# ----------------------
 
-# TODO: Fix the range!
+ML_columns = ('Train_size', 'LogReg_pred', 'LogReg2D_pred',
+              'KNN_pred', 'LSVM_pred', 'SVM_pred', 'RF_pred',
+              'ANN_pred', 'CNN_pred', 'RNN_pred')
+
+ML_df = pd.DataFrame(columns=ML_columns)
+
+# Add unused sequences to training set
 for x in np.linspace(0, 10000, 11):
     x = int(x)
-    print(x)  # TODO: Remove print statement!
 
-    # TODO: Fix this with pandas!
+    # Add x unused sequences to training set
     mHER_all_copy.train = pd.concat(
-        [copy.copy(mHER_all.train), unused_seq[0:x]])
+        [copy.copy(mHER_all.train), unused_seq[0:x]]
+    )
+
+    # Shuffle training data
     mHER_all_copy.train = mHER_all_copy.train.sample(
-        frac=1).reset_index(drop=True)
+        frac=1
+    ).reset_index(drop=True)
     mHER_all_copy.test = copy.copy(mHER_all.test)
     mHER_all_copy.val = copy.copy(mHER_all.val)
 
-    ML_df = mHER_all_copy.test
-
-    LogReg_pred, LogReg_stats = LogReg_classification(
-        mHER_all_copy, x, '{}'.format(x)
+    # Run all classifiers
+    LogReg_pred = LogReg_classification(
+        mHER_all_copy, '{}'.format(x)
     )
-    ML_df['LogReg_pred'] = LogReg_pred
-
-    LogReg2D_pred, LogReg2D_stats = LogReg2D_classification(
-        mHER_all_copy, x, '{}'.format(x)
+    LogReg2D_pred = LogReg2D_classification(
+        mHER_all_copy, '{}'.format(x)
     )
-    ML_df['LogReg2D_pred'] = LogReg2D_pred
-
-    KNN_pred, KNN_stats = KNN_classification(
-        mHER_all_copy, x, '{}'.format(x)
+    KNN_pred = KNN_classification(
+        mHER_all_copy, '{}'.format(x)
     )
-    ML_df['KNN_pred'] = KNN_pred
-
-    LSVM_pred, LSVM_stats = LSVM_classification(
-        mHER_all_copy, x, '{}'.format(x)
+    LSVM_pred = LSVM_classification(
+        mHER_all_copy, '{}'.format(x)
     )
-    ML_df['LSVM_pred'] = LSVM_pred
-
-    SVM_pred, SVM_stats = SVM_classification(
-        mHER_all_copy, x, '{}'.format(x)
+    SVM_pred = SVM_classification(
+        mHER_all_copy, '{}'.format(x)
     )
-    ML_df['SVM_pred'] = SVM_pred
-
-    RF_pred, RF_stats = RF_classification(
-        mHER_all_copy, x, '{}'.format(x)
+    RF_pred = RF_classification(
+        mHER_all_copy, '{}'.format(x)
     )
-    ML_df['RF_pred'] = RF_pred
-
-    ANN_pred, ANN_stats = ANN_classification(
-        mHER_all_copy, x, '{}'.format(x)
+    ANN_pred = ANN_classification(
+        mHER_all_copy, '{}'.format(x)
     )
-    ML_df['ANN_pred'] = ANN_pred
-
-    CNN_pred, CNN_stats = CNN_classification(
-        mHER_all_copy, x, '{}'.format(x)
+    CNN_pred = CNN_classification(
+        mHER_all_copy, '{}'.format(x)
     )
-    ML_df['CNN_pred'] = CNN_pred
-
-    RNN_pred, RNN_stats = RNN_classification(
-        mHER_all_copy, x, '{}'.format(x)
-    )
-    ML_df['RNN_pred'] = RNN_pred
-
-    # TODO: Lots of code here is duplicated! Functionalize it!!
-    ML_df.to_csv('figures/ML_increase_negs_{}.csv'.format(x))
-    all_stats = np.concatenate(
-        (np.array([x]), LogReg_stats, LogReg2D_stats, KNN_stats, LSVM_stats,
-         SVM_stats, RF_stats, ANN_stats, CNN_stats, RNN_stats)
-    )
-    ML_models = ML_models.append(
-        pd.DataFrame([all_stats], columns=list(ML_columns)), ignore_index=True
+    RNN_pred = RNN_classification(
+        mHER_all_copy, '{}'.format(x)
     )
 
-ML_models.to_csv('figures/ML_incrase_negs_combined.csv')
+    # Append a row with all predictions
+    all_preds = np.concatenate(
+        (np.array([x]), LogReg_pred, LogReg2D_pred, KNN_pred, LSVM_pred,
+         SVM_pred, RF_pred, ANN_pred, CNN_pred, RNN_pred)
+    )
+    ML_df = ML_df.append(
+        pd.DataFrame([all_preds], columns=list(ML_columns)), ignore_index=True
+    )
+
+ML_df.to_csv('figures/ML_increase_negs_all_preds.csv')
