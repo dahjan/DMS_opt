@@ -5,6 +5,7 @@ Created on Wed Jan 23 08:52:23 2019
 """
 
 # Importing libraries
+import sys
 import keras
 import numpy as np
 import pandas as pd
@@ -14,7 +15,7 @@ from Bio.Alphabet import IUPAC
 import matplotlib.pyplot as plt
 from sklearn.model_selection import train_test_split
 from sklearn.metrics import roc_curve, auc, precision_recall_curve, \
-    average_precision_score
+    average_precision_score, confusion_matrix
 
 
 def mixcr_input(file_name, Ag_class):
@@ -114,20 +115,18 @@ def data_split(Ag_pos, Ag_neg):
     return Seq_Ag_data
 
 
-def data_split_adj(Ag_pos, Ag_neg, ratio):
+def data_split_adj(Ag_pos, Ag_neg, fraction):
     """
     Create a collection of the data set and split into the
     training set and two test sets. Data set is adjusted to
-    the desired class split ratio. One test set contains the
-    same class split as the overall data set, the other test
-    set contains a class split of approx. 10% binders and
-    90% non-binders.
+    match the specified class split fraction, which determines
+    the fraction of Ag+ sequences.
 
     Parameters
     ---
     Ag_pos: Dataframe of the Ag+ data set
     Ag_neg: Dataframe of the Ag- data set
-    ratio: The desired class split ratio
+    fraction: The desired fraction of Ag+ in the data set
     """
 
     class Collection:
@@ -135,35 +134,35 @@ def data_split_adj(Ag_pos, Ag_neg, ratio):
             self.__dict__.update(kwds)
 
     # Calculate data sizes based on ratio
-    data_size_pos = len(Ag_pos)/ratio
-    data_size_neg = len(Ag_neg)/(1-ratio)
+    data_size_pos = len(Ag_pos)/fraction
+    data_size_neg = len(Ag_neg)/(1-fraction)
 
     # Adjust the length of the data frames to meet the ratio requirement
     if len(Ag_pos) <= len(Ag_neg):
         if data_size_neg < data_size_pos:
-            Ag_pos1 = Ag_pos[0:int((data_size_neg*ratio))]
+            Ag_pos1 = Ag_pos[0:int((data_size_neg*fraction))]
             Ag_neg1 = Ag_neg
-            Unused = Ag_pos[int((data_size_neg*ratio)):len(Ag_pos)]
+            Unused = Ag_pos[int((data_size_neg*fraction)):len(Ag_pos)]
 
         if data_size_neg >= data_size_pos:
-            Ag_pos1 = Ag_pos[0:int((data_size_pos*(ratio)))]
-            Ag_neg1 = Ag_neg[0:int((data_size_pos*(1-ratio)))]
+            Ag_pos1 = Ag_pos[0:int((data_size_pos*(fraction)))]
+            Ag_neg1 = Ag_neg[0:int((data_size_pos*(1-fraction)))]
             Unused = pd.concat(
-                [Ag_pos[int((data_size_pos*ratio)):len(Ag_pos)],
-                 Ag_neg[int((data_size_pos*(1-ratio))):len(Ag_neg)]]
+                [Ag_pos[int((data_size_pos*fraction)):len(Ag_pos)],
+                 Ag_neg[int((data_size_pos*(1-fraction))):len(Ag_neg)]]
             )
     else:
         if data_size_pos < data_size_neg:
             Ag_pos1 = Ag_pos
-            Ag_neg1 = Ag_neg[0:(int(data_size_pos*(1-ratio)))]
-            Unused = Ag_pos[int((data_size_pos*ratio)):len(Ag_pos)]
+            Ag_neg1 = Ag_neg[0:(int(data_size_pos*(1-fraction)))]
+            Unused = Ag_pos[int((data_size_pos*fraction)):len(Ag_pos)]
 
         if data_size_pos >= data_size_neg:
-            Ag_pos1 = Ag_pos[0:int((data_size_neg*(ratio)))]
-            Ag_neg1 = Ag_neg[0:int((data_size_neg*(1-ratio)))]
+            Ag_pos1 = Ag_pos[0:int((data_size_neg*(fraction)))]
+            Ag_neg1 = Ag_neg[0:int((data_size_neg*(1-fraction)))]
             Unused = pd.concat(
-                [Ag_pos[int((data_size_neg*ratio)):len(Ag_pos)],
-                 Ag_neg[int((data_size_neg*(1-ratio))):len(Ag_neg)]]
+                [Ag_pos[int((data_size_neg*fraction)):len(Ag_pos)],
+                 Ag_neg[int((data_size_neg*(1-fraction))):len(Ag_neg)]]
             )
 
     # Combine the positive and negative data frames
@@ -201,7 +200,8 @@ def one_hot_encoder(s,  alphabet):
     Parameters
     ---
     s: str, sequence which should be encoded
-    alphabet: Alphabet object, http://biopython.org/DIST/docs/api/Bio.Alphabet.IUPAC-module.html
+    alphabet: Alphabet object, downloaded from
+        http://biopython.org/DIST/docs/api/Bio.Alphabet.IUPAC-module.html
 
     Example
     ---
@@ -224,31 +224,59 @@ def one_hot_encoder(s,  alphabet):
     return x
 
 
-# def one_hot_decoder(x, alphabet):
-#     """
-#     Decodes a one-hot encoding to a biological sequence
-#
-#     Parameters
-#     ---
-#     x: array, n_size_alphabet, n_length_string
-#         Sequence as one-hot encoding
-#     alphabet: Alphabet object, http://biopython.org/DIST/docs/api/Bio.Alphabet.IUPAC-module.html
-#
-#     Example
-#     ---
-#     encoding = one_hot_encoder(sequence, IUPAC.unambiguous_dna)
-#     one_hot_decoder(encoding, IUPAC.unambiguous_dna)
-#
-#     Returns
-#     ---
-#     s : str, decoded sequence
-#     """
-#
-#     d = {a: i for i, a in enumerate(alphabet.letters)}
-#     inv_d = {i: a for a, i in d.items()}
-#     s = (''.join(str(inv_d[i]) for i in np.argmax(x, axis=0)))
-#
-#     return s
+def one_hot_decoder(x, alphabet):
+    """
+    Decodes a one-hot encoding to a biological sequence
+
+    Parameters
+    ---
+    x: array, n_size_alphabet, n_length_string
+        Sequence as one-hot encoding
+    alphabet: Alphabet object, downloaded from
+        http://biopython.org/DIST/docs/api/Bio.Alphabet.IUPAC-module.html
+
+    Example
+    ---
+    encoding = one_hot_encoder(sequence, IUPAC.unambiguous_dna)
+    one_hot_decoder(encoding, IUPAC.unambiguous_dna)
+
+    Returns
+    ---
+    s : str, decoded sequence
+    """
+
+    d = {a: i for i, a in enumerate(alphabet.letters)}
+    inv_d = {i: a for a, i in d.items()}
+    s = (''.join(str(inv_d[i]) for i in np.argmax(x, axis=0)))
+
+    return s
+
+
+def calc_stat(y_test, y_pred):
+    """
+    Compute accuracy of the classification via a confusion matrix.
+
+    Parameters
+    ---
+    y_test: the labels for binding- and non-binding sequences.
+    y_pred: the classification of samples in the data X.
+
+    Returns
+    ---
+    stats: array containing classification accuracy, precision
+        and recall
+    """
+
+    # Calculate accuracy of classification via confusion matrix
+    tn, fp, fn, tp = confusion_matrix(
+        y_test, y_pred
+    ).ravel()
+    acc = (tp+tn)/(tp+tn+fp+fn)
+    prec = (tp)/(tp+fp)
+    recall = tp/(tp+fn)
+
+    # Return statistics
+    return np.array([acc, prec, recall])
 
 
 def create_ann():
@@ -312,11 +340,10 @@ def create_cnn(units_per_layer, activation, regularizer):
         Flatten: [FLAT]
         Dense layer: [DENSE, number nodes]
 
-    Activation: Activation function, i.e. ReLU, softmax
+    activation: Activation function, i.e. ReLU, softmax
 
-    Regularizer: Kernel and bias regularizer in convulational and dense
+    regularizer: Kernel and bias regularizer in convulational and dense
         layers, i.e., regularizers.l1(0.01)
-
     """
 
     # Initialize the CNN
@@ -453,8 +480,35 @@ def plot_PR_curve(y_test, y_score, plot_title, plot_dir):
     plt.clf()
 
 
-# TODO: Continue here in checking the function!!
+def progbar(i, iter_per_epoch, message='', bar_length=50):
+    """
+    Progress bar, written by Simon Friedensohn.
 
+    Prints a progress bar in the following form:
+        [==                       ] 8%
+    """
+
+    # Calculate current progress
+    j = (i % iter_per_epoch) + 1
+
+    # Create and print the progress bar
+    perc = int(100. * j / iter_per_epoch)
+    prog = ''.join(['='] * (bar_length * perc // 100))
+    template = "\r[{:" + str(bar_length) + "s}] {:3d}% {:s}"
+    string = template.format(prog, perc, message)
+    sys.stdout.write(string)
+    sys.stdout.flush()
+
+    # Terminating condition
+    end_epoch = (j == iter_per_epoch)
+    if end_epoch:
+        prog = ''.join(['='] * (bar_length))
+        string = template.format(prog, 100, message)
+        sys.stdout.write(string)
+        sys.stdout.flush()
+
+
+# TODO: Continue here in checking the function!!
 def seq_classification(classifier):
     """
     In silico generate sequences and classify them as a binding or non-binding
@@ -463,11 +517,12 @@ def seq_classification(classifier):
     Parameters
     ---
     AA_per_pos: amino acids used per position in list format, i.e.,
-    [['F','Y','W'],['A','D','G',...'Y']]
+        [['F','Y','W'],['A','D','G',...'Y']]
 
-    classifier: RNN or CNN classification model to use
-
+    classifier: ANN or CNN classification model to use
     """
+
+    print('[INFO] Classifying in silico generated sequences')
 
     # Define valid amino acids per position
     AA_per_pos = [
@@ -486,59 +541,64 @@ def seq_classification(classifier):
         ['A', 'D', 'E', 'H', 'I', 'K', 'L', 'M',
          'N', 'P', 'Q', 'T', 'V']]
 
-    dim = []
-    for x in AA_per_pos:
-        # Get number of possible amino acids
-        dim.append(len(x))
-
-        idx = [0]*len(dim)
-        print(idx)
-        current_seq = np.empty(0, dtype=object)
-        pos_seq = np.empty(0, dtype=str)
-        pos_pred = np.empty(0, dtype=float)
-
-    print(schnuebl)
+    # Parameters used in while loop
+    current_seq = np.empty(0, dtype=object)
+    dim = [len(x) for x in AA_per_pos]
+    idx = [0]*len(dim)
     counter = 1
     pos = 0
 
+    # Arrays to store results
+    pos_seq = np.empty(0, dtype=str)
+    pos_pred = np.empty(0, dtype=float)
+
     while(1):
-        l = []
+        # Get every possible combination of amino acids
+        l_comb = []
         for i in range(0, len(dim)):
-            l.append(AA_per_pos[i][idx[i]])
+            l_comb.append(AA_per_pos[i][idx[i]])
 
-        current_seq = np.append(current_seq, (''.join(l)))
+        # Append current sequence
+        current_seq = np.append(current_seq, (''.join(l_comb)))
 
+        # Run classification on 500 sequences
         if len(current_seq) == 500:
+            # One-hot encoding and sequence classification
             ohe_seq = [one_hot_encoder(s=x, alphabet=IUPAC.protein)
                        for x in current_seq]
             ohe_seq = np.transpose(np.asarray(ohe_seq), (0, 2, 1))
             seq_pred = classifier.predict(x=ohe_seq)
 
+            # Append significant sequences and predictions
             pos_seq = np.append(
                 pos_seq, current_seq[np.where(seq_pred > 0.50)[0]])
             pos_pred = np.append(
                 pos_pred, seq_pred[np.where(seq_pred > 0.50)[0]])
-            # pos_seq.append(current_seq[np.where(seq_pred > 0.5)[0]])
 
+            # Empty current_seq array
             current_seq = np.empty(0, dtype=object)
-            print(counter, '/', np.prod(dim)/500)
-            counter += 1
-            # current_seq = []
 
+            # Print progress bar
+            progbar(counter, np.ceil(np.prod(dim)/500))
+            counter += 1
+
+        # Terminating condition
         if sum(idx) == (sum(dim)-len(dim)):
+            # One-hot encoding and sequence classification
             ohe_seq = [one_hot_encoder(s=x, alphabet=IUPAC.protein)
                        for x in current_seq]
             ohe_seq = np.transpose(np.asarray(ohe_seq), (0, 2, 1))
             seq_pred = classifier.predict(x=ohe_seq)
 
+            # Append significant sequences and predictions
             pos_seq = np.append(
                 pos_seq, current_seq[np.where(seq_pred > 0.50)[0]])
             pos_pred = np.append(
                 pos_pred, seq_pred[np.where(seq_pred > 0.50)[0]])
-            # pos_seq.append(current_seq[np.where(seq_pred > 0.5)[0]])
 
             break
 
+        # Update idx
         while(1):
             if (idx[pos]+1) == dim[pos]:
                 idx[pos] = 0
@@ -549,54 +609,3 @@ def seq_classification(classifier):
                 break
 
     return pos_seq, pos_pred
-
-
-def seq_class_test(AA_list, classifier):
-
-    aa_test = [x[3:-2] for x in AA_list]
-
-    ohe_seq = [one_hot_encoder(s=x, alphabet=IUPAC.protein) for x in aa_test]
-    ohe_seq = np.transpose(np.asarray(ohe_seq), (0, 2, 1))
-    seq_pred = classifier.predict(x=ohe_seq)
-
-    pos_seq = AA_list[np.where(seq_pred > 0.50)[0]]
-    pos_pred = seq_pred[np.where(seq_pred > 0.50)[0]]
-
-    return pos_seq, pos_pred, seq_pred
-
-
-def seq_class_test2(AA_list, classifier):
-
-    aa_test = [x[3:-2] for x in AA_list]
-
-    ohe_seq = [one_hot_encoder(s=x, alphabet=IUPAC.protein) for x in aa_test]
-    ohe_seq = [x.flatten('F') for x in ohe_seq]
-    seq_pred = classifier.predict(ohe_seq)
-
-    return seq_pred
-
-
-def seq_class_test3(AA_list, classifier):
-
-    aa_test = [x[3:-2] for x in AA_list]
-
-    ohe_seq = [one_hot_encoder(s=x, alphabet=IUPAC.protein) for x in aa_test]
-    ohe_seq = [x.flatten('F') for x in ohe_seq]
-    ohe_seq = np.asarray(ohe_seq)
-    seq_pred = classifier.predict(ohe_seq)
-
-    return seq_pred
-
-
-def seq_class_neg(AA_list, classifier):
-
-    aa_test = [x[3:-2] for x in AA_list]
-
-    ohe_seq = [one_hot_encoder(s=x, alphabet=IUPAC.protein) for x in aa_test]
-    ohe_seq = np.transpose(np.asarray(ohe_seq), (0, 2, 1))
-    seq_pred = classifier.predict(x=ohe_seq)
-
-    neg_seq = AA_list[np.where(seq_pred <= 0.50)[0]]
-    neg_pred = seq_pred[np.where(seq_pred <= 0.50)[0]]
-
-    return neg_seq, neg_pred, seq_pred

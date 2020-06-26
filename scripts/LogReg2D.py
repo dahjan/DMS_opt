@@ -5,7 +5,7 @@ from sklearn.linear_model import LogisticRegression
 
 # Import custom functions
 from utils import one_hot_encoder, plot_ROC_curve, \
-    plot_PR_curve
+    plot_PR_curve, calc_stat
 
 
 def LogReg2D_classification(dataset, filename):
@@ -22,17 +22,16 @@ def LogReg2D_classification(dataset, filename):
     filename: an identifier to distinguish different
        plots from each other.
 
-    Returns: ROC and PR curves.
+    Returns
+    ---
+    stats: array containing classification accuracy, precision
+        and recall
     """
 
     # Import training/test set
-    # Trim off 3' Y amino acid
-    X_train_seq = dataset.train.loc[:, 'AASeq'].values
-    X_train = [x[0:-1] for x in X_train_seq]
-    X_test_seq = dataset.test.loc[:, 'AASeq'].values
-    X_test = [x[0:-1] for x in X_test_seq]
-    X_val_seq = dataset.val.loc[:, 'AASeq'].values
-    X_val = [x[0:-1] for x in X_val_seq]
+    X_train = dataset.train.loc[:, 'AASeq'].values
+    X_test = dataset.test.loc[:, 'AASeq'].values
+    X_val = dataset.val.loc[:, 'AASeq'].values
 
     # One hot encode the sequences in 2D
     X_train = [one_hot_encoder(s=x, alphabet=IUPAC.protein) for x in X_train]
@@ -95,4 +94,8 @@ def LogReg2D_classification(dataset, filename):
         plot_dir='figures/2DLR_P-R_Test_{}.png'.format(filename)
     )
 
-    return y_pred
+    # Calculate statistics
+    stats = calc_stat(y_test, y_pred)
+
+    # Return statistics
+    return stats

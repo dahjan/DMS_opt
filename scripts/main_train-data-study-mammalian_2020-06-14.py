@@ -7,20 +7,21 @@ Created on Fri Apr 26 11:47:58 2019
 """
 
 # Import libraries
+import os
+import copy
 import numpy as np
 import pandas as pd
-import copy
 
 # Import machine learning models
-from LogReg5 import LogReg_classification
-from LogReg2D5 import LogReg2D_classification
-from KNN5 import KNN_classification
-from LSVM5 import LSVM_classification
-from SVM5 import SVM_classification
-from RF5 import RF_classification
-from ANN5 import ANN_classification
-from CNN5 import CNN_classification
-from RNN5 import RNN_classification
+from LogReg import LogReg_classification
+from LogReg2D import LogReg2D_classification
+from KNN import KNN_classification
+from LSVM import LSVM_classification
+from SVM import SVM_classification
+from RF import RF_classification
+from ANN import ANN_classification
+from CNN import CNN_classification
+from RNN import RNN_classification
 
 # Import custom functions
 from utils import mixcr_input, data_split_adj
@@ -53,8 +54,8 @@ mHER_H3_AgNeg = pd.concat(ab_neg_data)
 # Drop duplicate sequences
 mHER_H3_AgNeg = mHER_H3_AgNeg.drop_duplicates(subset='AASeq')
 
-# Remove 'CAR/CSR' motif and last amino acid
-mHER_H3_AgNeg['AASeq'] = [x[3:-1] for x in mHER_H3_AgNeg['AASeq']]
+# Remove 'CAR/CSR' motif and last two amino acids
+mHER_H3_AgNeg['AASeq'] = [x[3:-2] for x in mHER_H3_AgNeg['AASeq']]
 
 # Shuffle sequences and reset index
 mHER_H3_AgNeg = mHER_H3_AgNeg.sample(frac=1).reset_index(drop=True)
@@ -79,14 +80,16 @@ mHER_H3_AgPos = pd.concat(ab_pos_data)
 # Drop duplicate sequences
 mHER_H3_AgPos = mHER_H3_AgPos.drop_duplicates(subset='AASeq')
 
-# Remove 'CAR/CSR' motif and last amino acid
-mHER_H3_AgPos['AASeq'] = [x[3:-1] for x in mHER_H3_AgPos['AASeq']]
+# Remove 'CAR/CSR' motif and last two amino acids
+mHER_H3_AgPos['AASeq'] = [x[3:-2] for x in mHER_H3_AgPos['AASeq']]
 
 # Shuffle sequences and reset index
 mHER_H3_AgPos = mHER_H3_AgPos.sample(frac=1).reset_index(drop=True)
 
 # Create collection with training and test split
-mHER_all, unused_seq = data_split_adj(mHER_H3_AgPos, mHER_H3_AgNeg, ratio=0.5)
+mHER_all, unused_seq = data_split_adj(
+    mHER_H3_AgPos, mHER_H3_AgNeg, fraction=0.5
+)
 
 # Create shallow copy of the data collection
 mHER_all_copy = copy.copy(mHER_all)
@@ -96,10 +99,18 @@ mHER_all_copy = copy.copy(mHER_all)
 # Run classifiers
 # ----------------------
 
-ML_columns = ('Train_size', 'LogReg_pred', 'LogReg2D_pred',
-              'KNN_pred', 'LSVM_pred', 'SVM_pred', 'RF_pred',
-              'ANN_pred', 'CNN_pred', 'RNN_pred')
+# Create directory to store figures (hard-coded!)
+os.makedirs('figures', exist_ok=True)
 
+# Create columns for final dataframe
+ML_columns = ('Train_size', 'LogReg_acc', 'LogReg_prec',
+              'LogReg_recall', 'LogReg2D_acc', 'LogReg2D_prec',
+              'LogReg2D_recall', 'KNN_acc', 'KNN_prec',
+              'KNN_recall', 'LSVM_acc', 'LSVM_prec',
+              'LSVM_recall', 'SVM_acc', 'SVM_prec', 'SVM_recall',
+              'RF_acc', 'RF_prec', 'RF_recall', 'ANN_acc',
+              'ANN_prec', 'ANN_recall', 'CNN_acc', 'CNN_prec',
+              'CNN_recall', 'RNN_acc', 'RNN_prec', 'RNN_recall')
 ML_df = pd.DataFrame(columns=ML_columns)
 
 # Add unused sequences to training set
@@ -119,41 +130,42 @@ for x in np.linspace(0, 10000, 11):
     mHER_all_copy.val = copy.copy(mHER_all.val)
 
     # Run all classifiers
-    LogReg_pred = LogReg_classification(
+    LogReg_stats = LogReg_classification(
         mHER_all_copy, '{}'.format(x)
     )
-    LogReg2D_pred = LogReg2D_classification(
+    LogReg2D_stats = LogReg2D_classification(
         mHER_all_copy, '{}'.format(x)
     )
-    KNN_pred = KNN_classification(
+    KNN_stats = KNN_classification(
         mHER_all_copy, '{}'.format(x)
     )
-    LSVM_pred = LSVM_classification(
+    LSVM_stats = LSVM_classification(
         mHER_all_copy, '{}'.format(x)
     )
-    SVM_pred = SVM_classification(
+    SVM_stats = SVM_classification(
         mHER_all_copy, '{}'.format(x)
     )
-    RF_pred = RF_classification(
+    RF_stats = RF_classification(
         mHER_all_copy, '{}'.format(x)
     )
-    ANN_pred = ANN_classification(
+    ANN_stats = ANN_classification(
         mHER_all_copy, '{}'.format(x)
     )
-    CNN_pred = CNN_classification(
+    CNN_stats = CNN_classification(
         mHER_all_copy, '{}'.format(x)
     )
-    RNN_pred = RNN_classification(
+    RNN_stats = RNN_classification(
         mHER_all_copy, '{}'.format(x)
     )
 
-    # Append a row with all predictions
-    all_preds = np.concatenate(
-        (np.array([x]), LogReg_pred, LogReg2D_pred, KNN_pred, LSVM_pred,
-         SVM_pred, RF_pred, ANN_pred, CNN_pred, RNN_pred)
+    # Append a row with all statistics
+    all_stats = np.concatenate(
+        (np.array([x]), LogReg_stats, LogReg2D_stats, KNN_stats, LSVM_stats,
+         SVM_stats, RF_stats, ANN_stats, CNN_stats, RNN_stats)
     )
     ML_df = ML_df.append(
-        pd.DataFrame([all_preds], columns=list(ML_columns)), ignore_index=True
+        pd.DataFrame([all_stats], columns=list(ML_columns)), ignore_index=True
     )
 
-ML_df.to_csv('figures/ML_increase_negs_all_preds.csv')
+# Save statistics to file
+ML_df.to_csv('figures/ML_increase_negs_combined.csv')

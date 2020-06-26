@@ -1,15 +1,15 @@
 # Import libraries
 from Bio.Alphabet import IUPAC
-from sklearn.svm import LinearSVC
+from sklearn.linear_model import LogisticRegression
 
 # Import custom functions
 from utils import one_hot_encoder, plot_ROC_curve, \
-    plot_PR_curve
+    plot_PR_curve, calc_stat
 
 
-def LSVM_classification(dataset, filename):
+def LogReg_classification(dataset, filename):
     """
-    Classification of data with linear support vectors,
+    Classification of data with logistic regression,
     followed by plotting of ROC and PR curves.
 
     Parameters
@@ -21,17 +21,16 @@ def LSVM_classification(dataset, filename):
     filename: an identifier to distinguish different
        plots from each other.
 
-    Returns: ROC and PR curves.
+    Returns
+    ---
+    stats: array containing classification accuracy, precision
+        and recall
     """
 
     # Import training/test set
-    # Trim off 3' Y amino acid
-    X_train_seq = dataset.train.loc[:, 'AASeq'].values
-    X_train = [x[0:-1] for x in X_train_seq]
-    X_test_seq = dataset.test.loc[:, 'AASeq'].values
-    X_test = [x[0:-1] for x in X_test_seq]
-    X_val_seq = dataset.val.loc[:, 'AASeq'].values
-    X_val = [x[0:-1] for x in X_val_seq]
+    X_train = dataset.train.loc[:, 'AASeq'].values
+    X_test = dataset.test.loc[:, 'AASeq'].values
+    X_val = dataset.val.loc[:, 'AASeq'].values
 
     # One hot encode the sequences
     X_train = [one_hot_encoder(s=x, alphabet=IUPAC.protein) for x in X_train]
@@ -45,26 +44,30 @@ def LSVM_classification(dataset, filename):
     y_train = dataset.train.loc[:, 'AgClass'].values
     y_test = dataset.test.loc[:, 'AgClass'].values
 
-    # Fitting classifier to the training set
-    SVM_classifier = LinearSVC()
-    SVM_classifier.fit(X_train, y_train)
+    # Fitting Logistic Regression to the training set
+    LR_classifier = LogisticRegression(random_state=0)
+    LR_classifier.fit(X_train, y_train)
 
     # Predicting the test set results
-    y_pred = SVM_classifier.predict(X_test)
-    y_score = SVM_classifier.decision_function(X_test)
+    y_pred = LR_classifier.predict(X_test)
+    y_score = LR_classifier.predict_proba(X_test)
 
     # ROC curve
-    title = 'Linear SVM ROC curve (Train={})'.format(filename)
+    title = 'Logistic Regression ROC curve (Train={})'.format(filename)
     plot_ROC_curve(
-        y_test, y_score, plot_title=title,
-        plot_dir='figures/LSVM_ROC_Test_{}.png'.format(filename)
+        y_test, y_score[:, 1], plot_title=title,
+        plot_dir='figures/LR_ROC_Test_{}.png'.format(filename)
     )
 
     # Precision-recall curve
-    title = 'Linear SVM Precision-Recall curve (Train={})'.format(filename)
+    title = 'Logistic Regression Precision-Recall curve (Train={})'.format(filename)
     plot_PR_curve(
-        y_test, y_score, plot_title=title,
-        plot_dir='figures/LSVM_P-R_Test_{}.png'.format(filename)
+        y_test, y_score[:, 1], plot_title=title,
+        plot_dir='figures/LR_P-R_Test_{}.png'.format(filename)
     )
 
-    return y_pred
+    # Calculate statistics
+    stats = calc_stat(y_test, y_pred)
+
+    # Return statistics
+    return stats
