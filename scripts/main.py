@@ -24,7 +24,8 @@ from CNN import CNN_classification
 from RNN import RNN_classification
 
 # Import custom functions
-from utils import mixcr_input, data_split_adj
+from utils import mixcr_input, data_split, \
+    data_split_adj, seq_classification
 
 
 # ----------------------
@@ -86,18 +87,18 @@ mHER_H3_AgPos['AASeq'] = [x[3:-2] for x in mHER_H3_AgPos['AASeq']]
 # Shuffle sequences and reset index
 mHER_H3_AgPos = mHER_H3_AgPos.sample(frac=1).reset_index(drop=True)
 
-# Create collection with training and test split
-mHER_all, unused_seq = data_split_adj(
-    mHER_H3_AgPos, mHER_H3_AgNeg, fraction=0.5
-)
-
-# Create shallow copy of the data collection
-mHER_all_copy = copy.copy(mHER_all)
-
 
 # ----------------------
 # Run classifiers
 # ----------------------
+
+# Create collection with training and test split
+mHER_all_adj, unused_seq = data_split_adj(
+    mHER_H3_AgPos, mHER_H3_AgNeg, fraction=0.5
+)
+
+# Create shallow copy of the data collection
+mHER_all_copy = copy.copy(mHER_all_adj)
 
 # Create directory to store figures (hard-coded!)
 os.makedirs('figures', exist_ok=True)
@@ -119,15 +120,15 @@ for x in np.linspace(0, 10000, 11):
 
     # Add x unused sequences to training set
     mHER_all_copy.train = pd.concat(
-        [copy.copy(mHER_all.train), unused_seq[0:x]]
+        [copy.copy(mHER_all_adj.train), unused_seq[0:x]]
     )
 
     # Shuffle training data
-    mHER_all_copy.train = mHER_all_copy.train.sample(
+    mHER_all_copy.train = mHER_all_adj.train.sample(
         frac=1
     ).reset_index(drop=True)
-    mHER_all_copy.test = copy.copy(mHER_all.test)
-    mHER_all_copy.val = copy.copy(mHER_all.val)
+    mHER_all_copy.test = copy.copy(mHER_all_adj.test)
+    mHER_all_copy.val = copy.copy(mHER_all_adj.val)
 
     # Run all classifiers
     LogReg_stats = LogReg_classification(
@@ -169,3 +170,40 @@ for x in np.linspace(0, 10000, 11):
 
 # Save statistics to file
 ML_df.to_csv('figures/ML_increase_negs_combined.csv')
+
+
+# ----------------------
+# Run classifiers on in
+# silico generated data
+# ----------------------
+
+# Create collection with training and test split
+mHER_H3_all = data_split(mHER_H3_AgPos, mHER_H3_AgNeg)
+
+# Create model directory
+model_dir = 'model_out'
+os.makedirs(model_dir, exist_ok=True)
+
+# Train and test ANN and CNN with unadjusted (class split) data set
+ANN_all = ANN_classification(
+    mHER_H3_all, 'All_data', save_model=model_dir
+)
+CNN_all = CNN_classification(
+    mHER_H3_all, 'All_data', save_model=model_dir
+)
+
+# Generate CDRH3 sequences in silico and calculate their
+# prediction values if P(binder) > 0.5
+ANN_all_seq, ANN_all_pred = seq_classification(ANN_all)
+CNN_all_seq, CNN_all_pred = seq_classification(CNN_all)
+
+# Write output to .csv file
+ANN_all_df = pd.DataFrame(
+    {'AASeq': ANN_all_seq, 'Pred': ANN_all_pred}, columns=['AASeq', 'Pred']
+)
+ANN_all_df.to_csv('data/CNN_H3_all_2020-03.csv', sep=',')
+
+CNN_all_df = pd.DataFrame(
+    {'AASeq': CNN_all_seq, 'Pred': CNN_all_pred}, columns=['AASeq', 'Pred']
+)
+CNN_all_df.to_csv('data/CNN_H3_all_2020-03.csv', sep=',')

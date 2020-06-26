@@ -60,7 +60,7 @@ def RNN_classification(dataset, filename, save_model=False):
     # Fit the RNN to the training set
     _ = RNN_classifier.fit(
         x=X_train, y=y_train, shuffle=True, validation_data=(X_val, y_val),
-        batch_size=32, epochs=20, verbose=2
+        epochs=20, batch_size=32, verbose=2
     )
 
     # Predicting the test set results

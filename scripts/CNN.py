@@ -67,7 +67,7 @@ def CNN_classification(dataset, filename, save_model=False):
     # Fit the CNN to the training set
     _ = CNN_classifier.fit(
         x=X_train, y=y_train, shuffle=True, validation_data=(X_val, y_val),
-        epochs=2, batch_size=16, verbose=2
+        epochs=20, batch_size=16, verbose=2
     )
 
     # Predicting the test set results
