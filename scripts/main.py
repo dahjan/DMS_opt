@@ -24,68 +24,32 @@ from CNN import CNN_classification
 from RNN import RNN_classification
 
 # Import custom functions
-from utils import mixcr_input, data_split, \
-    data_split_adj, seq_classification
+from utils import data_split, data_split_adj, \
+    seq_classification, load_input_data
 
 
 # ----------------------
-# Load MiXCR output
+# Load input data
 # ----------------------
 
 # Class labels:
 # antigen binder = 1, non-binder = 0
 
-# TODO: Functionalize this!!
-
-# Combine the non-binding sequence data sets.
-# Non-binding data sets include Ab+ data and Ag-
-# sorted data for all 3 libraries
+# Load non-binding sequences
 ab_neg_files = [
     'mHER_H3_1_Ab.txt', 'mHER_H3_1_AgN.txt',
     'mHER_H3_2_Ab.txt', 'mHER_H3_2_AgN.txt',
     'mHER_H3_3_Ab.txt', 'mHER_H3_3_AgN.txt'
 ]
-ab_neg_data = []
-for file in ab_neg_files:
-    ab_neg_data.append(
-        mixcr_input('data/' + file, Ag_class=0)
-    )
-mHER_H3_AgNeg = pd.concat(ab_neg_data)
+mHER_H3_AgNeg = load_input_data(ab_neg_files, Ag_class=0)
 
-# Drop duplicate sequences
-mHER_H3_AgNeg = mHER_H3_AgNeg.drop_duplicates(subset='AASeq')
-
-# Remove 'CAR/CSR' motif and last two amino acids
-mHER_H3_AgNeg['AASeq'] = [x[3:-2] for x in mHER_H3_AgNeg['AASeq']]
-
-# Shuffle sequences and reset index
-mHER_H3_AgNeg = mHER_H3_AgNeg.sample(frac=1).reset_index(drop=True)
-
-# TODO: Functionalize this!!
-
-# Combine the binding sequence data sets
-# Binding data sets include Ag+ data from 2 rounds of Ag enrichment for all
-# 3 libraries; Ag+ data from 1 round is omitted
+# Load binding sequences
 ab_pos_files = [
     'mHER_H3_1_2Ag647.txt', 'mHER_H3_1_2Ag488.txt',
     'mHER_H3_2_2Ag647.txt', 'mHER_H3_2_2Ag488.txt',
     'mHER_H3_3_2Ag647.txt', 'mHER_H3_3_2Ag488.txt'
 ]
-ab_pos_data = []
-for file in ab_pos_files:
-    ab_pos_data.append(
-        mixcr_input('data/' + file, Ag_class=1)
-    )
-mHER_H3_AgPos = pd.concat(ab_pos_data)
-
-# Drop duplicate sequences
-mHER_H3_AgPos = mHER_H3_AgPos.drop_duplicates(subset='AASeq')
-
-# Remove 'CAR/CSR' motif and last two amino acids
-mHER_H3_AgPos['AASeq'] = [x[3:-2] for x in mHER_H3_AgPos['AASeq']]
-
-# Shuffle sequences and reset index
-mHER_H3_AgPos = mHER_H3_AgPos.sample(frac=1).reset_index(drop=True)
+mHER_H3_AgPos = load_input_data(ab_pos_files, Ag_class=1)
 
 
 # ----------------------
@@ -181,7 +145,7 @@ ML_df.to_csv('figures/ML_increase_negs_combined.csv')
 mHER_H3_all = data_split(mHER_H3_AgPos, mHER_H3_AgNeg)
 
 # Create model directory
-model_dir = 'model_out'
+model_dir = 'classification'
 os.makedirs(model_dir, exist_ok=True)
 
 # Train and test ANN and CNN with unadjusted (class split) data set
@@ -191,19 +155,29 @@ ANN_all = ANN_classification(
 CNN_all = CNN_classification(
     mHER_H3_all, 'All_data', save_model=model_dir
 )
+# RNN_all = RNN_classification(
+#     mHER_H3_all, 'All_data', save_model=model_dir
+# )
 
 # Generate CDRH3 sequences in silico and calculate their
 # prediction values if P(binder) > 0.5
-ANN_all_seq, ANN_all_pred = seq_classification(ANN_all)
+print('[INFO] Classifying in silico generated sequences')
+ANN_all_seq, ANN_all_pred = seq_classification(ANN_all, flatten_input=True)
 CNN_all_seq, CNN_all_pred = seq_classification(CNN_all)
+# RNN_all_seq, RNN_all_pred = seq_classification(RNN_all)
+print('[INFO] Done')
 
 # Write output to .csv file
 ANN_all_df = pd.DataFrame(
     {'AASeq': ANN_all_seq, 'Pred': ANN_all_pred}, columns=['AASeq', 'Pred']
 )
-ANN_all_df.to_csv('data/CNN_H3_all_2020-03.csv', sep=',')
+ANN_all_df.to_csv(
+    os.path.join(model_dir, 'ANN_H3_all_2020-03.csv'), sep=','
+)
 
 CNN_all_df = pd.DataFrame(
     {'AASeq': CNN_all_seq, 'Pred': CNN_all_pred}, columns=['AASeq', 'Pred']
 )
-CNN_all_df.to_csv('data/CNN_H3_all_2020-03.csv', sep=',')
+CNN_all_df.to_csv(
+    os.path.join(model_dir, 'CNN_H3_all_2020-03.csv'), sep=','
+)

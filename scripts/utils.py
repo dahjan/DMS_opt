@@ -18,6 +18,41 @@ from sklearn.metrics import roc_curve, auc, precision_recall_curve, \
     average_precision_score, confusion_matrix
 
 
+def load_input_data(filenames, Ag_class):
+    """
+    Load the files specified in filenames.
+
+    Parameters
+    ---
+    filenames: a list of names that specify the files to
+        be loaded.
+
+    Ag_class: classification of sequences from MiXCR txt file
+               (i.e., antigen binder = 1, non-binder = 0)
+    """
+
+    # Combine the non-binding sequence data sets.
+    # Non-binding data sets include Ab+ data and Ag-
+    # sorted data for all 3 libraries
+    l_data = []
+    for file in filenames:
+        l_data.append(
+            mixcr_input('data/' + file, Ag_class)
+        )
+    mHER_H3 = pd.concat(l_data)
+
+    # Drop duplicate sequences
+    mHER_H3 = mHER_H3.drop_duplicates(subset='AASeq')
+
+    # Remove 'CAR/CSR' motif and last two amino acids
+    mHER_H3['AASeq'] = [x[3:-2] for x in mHER_H3['AASeq']]
+
+    # Shuffle sequences and reset index
+    mHER_H3 = mHER_H3.sample(frac=1).reset_index(drop=True)
+
+    return mHER_H3
+
+
 def mixcr_input(file_name, Ag_class):
     """
     Read in data from the MiXCR txt output file
@@ -28,7 +63,6 @@ def mixcr_input(file_name, Ag_class):
 
     Ag_class: classification of sequences from MiXCR txt file
                (i.e., antigen binder = 1, non-binder = 0)
-
     """
 
     # Read data and rename columns
@@ -384,6 +418,53 @@ def create_cnn(units_per_layer, activation, regularizer):
     return model
 
 
+def build_classifier(filters, kernels, strides, activation,
+                     dropout, dense, optimizer):
+    """
+    This function builds a CNN classifier, whose hyperparameters
+    can be optimized with sklearn. Those parameters are the input
+    of this function:
+        filters, kernels, strides, activation,
+        dropout, dense, optimizer
+
+    The function then returns the compiled CNN classifier.
+    """
+
+    # Initialize the classifier
+    classifier = keras.Sequential()
+
+    # 1. Convolutional layer
+    classifier.add(keras.layers.Conv1D(filters=filters,
+                                       kernel_size=kernels,
+                                       strides=strides,
+                                       activation=activation,
+                                       padding='same',
+                                       input_shape=(10, 20, )))
+
+    # 2. Add dropout
+    classifier.add(keras.layers.Dropout(rate=dropout))
+
+    # 3. Max Pooling
+    classifier.add(keras.layers.MaxPool1D(pool_size=2,
+                                          strides=strides))
+
+    # 4. Flatten the input
+    classifier.add(keras.layers.Flatten())
+
+    # 5. Dense layer
+    classifier.add(keras.layers.Dense(units=dense,
+                                      activation=activation))
+
+    # 6. Output layer, sigmoid activation
+    classifier.add(keras.layers.Dense(1, activation='sigmoid'))
+
+    # Compiling the classifier
+    classifier.compile(optimizer=optimizer,
+                       loss='binary_crossentropy', metrics=['accuracy'])
+
+    return classifier
+
+
 def create_rnn():
     """
     Generate the ANN layers with Keras wrapper with hard-coded
@@ -508,21 +589,25 @@ def progbar(i, iter_per_epoch, message='', bar_length=50):
         sys.stdout.flush()
 
 
-# TODO: Continue here in checking the function!!
-def seq_classification(classifier):
+def seq_classification(classifier, flatten_input=False):
     """
-    In silico generate sequences and classify them as a binding or non-binding
-    sequence respectively.
+    In silico generate sequences and classify them as a binding
+    or non-binding sequence respectively.
 
     Parameters
     ---
-    AA_per_pos: amino acids used per position in list format, i.e.,
-        [['F','Y','W'],['A','D','G',...'Y']]
+    classifier: The neural network classification model to use.
 
-    classifier: ANN or CNN classification model to use
+    flatten_input: If set True, the in silico generated sequence
+        input is flattened before being classified. This is
+        necessary for neural networks which take a 2-dimensional
+        input (i.e. ANN).
+
+    Returns
+    ---
+    pos_seq, pos_pred: an array of all positive sequences together
+       with their predicted value.
     """
-
-    print('[INFO] Classifying in silico generated sequences')
 
     # Define valid amino acids per position
     AA_per_pos = [
@@ -563,17 +648,18 @@ def seq_classification(classifier):
 
         # Run classification on 500 sequences
         if len(current_seq) == 500:
-            # One-hot encoding and sequence classification
-            ohe_seq = [one_hot_encoder(s=x, alphabet=IUPAC.protein)
-                       for x in current_seq]
-            ohe_seq = np.transpose(np.asarray(ohe_seq), (0, 2, 1))
-            seq_pred = classifier.predict(x=ohe_seq)
+            # Run classification of current_seq
+            seq_pred = run_classification(
+                current_seq, classifier, flatten_input
+            )
 
             # Append significant sequences and predictions
             pos_seq = np.append(
-                pos_seq, current_seq[np.where(seq_pred > 0.50)[0]])
+                pos_seq, current_seq[np.where(seq_pred > 0.50)[0]]
+            )
             pos_pred = np.append(
-                pos_pred, seq_pred[np.where(seq_pred > 0.50)[0]])
+                pos_pred, seq_pred[np.where(seq_pred > 0.50)[0]]
+            )
 
             # Empty current_seq array
             current_seq = np.empty(0, dtype=object)
@@ -584,17 +670,18 @@ def seq_classification(classifier):
 
         # Terminating condition
         if sum(idx) == (sum(dim)-len(dim)):
-            # One-hot encoding and sequence classification
-            ohe_seq = [one_hot_encoder(s=x, alphabet=IUPAC.protein)
-                       for x in current_seq]
-            ohe_seq = np.transpose(np.asarray(ohe_seq), (0, 2, 1))
-            seq_pred = classifier.predict(x=ohe_seq)
+            # Run classification of current_seq
+            seq_pred = run_classification(
+                current_seq, classifier, flatten_input
+            )
 
             # Append significant sequences and predictions
             pos_seq = np.append(
-                pos_seq, current_seq[np.where(seq_pred > 0.50)[0]])
+                pos_seq, current_seq[np.where(seq_pred > 0.50)[0]]
+            )
             pos_pred = np.append(
-                pos_pred, seq_pred[np.where(seq_pred > 0.50)[0]])
+                pos_pred, seq_pred[np.where(seq_pred > 0.50)[0]]
+            )
 
             break
 
@@ -609,3 +696,40 @@ def seq_classification(classifier):
                 break
 
     return pos_seq, pos_pred
+
+
+def run_classification(current_seq, classifier, flatten_input):
+    """
+    Performs one hot encoding on a list of sequences; those
+    sequences are the classified with a neural network model.
+
+    Parameters
+    ---
+    current_seq: a numpy array containing the sequences
+        to be classified.
+
+    classifier: The neural network classification model to use.
+
+    flatten_input: If set True, the in silico generated sequence
+        input is flattened before being classified. This is
+        necessary for neural networks which take a 2-dimensional
+        input (i.e. ANN).
+
+    Returns
+    ---
+    seq_pred: an array of prediction values for the sequences.
+    """
+
+    # One-hot encoding
+    ohe_seq = [one_hot_encoder(s=x, alphabet=IUPAC.protein)
+               for x in current_seq]
+    ohe_seq = np.transpose(np.asarray(ohe_seq), (0, 2, 1))
+
+    # Flatten the input if specified
+    if flatten_input:
+        ohe_seq = ohe_seq.reshape(ohe_seq.shape[0], -1)
+
+    # Sequence classification
+    seq_pred = classifier.predict(x=ohe_seq)
+
+    return seq_pred
