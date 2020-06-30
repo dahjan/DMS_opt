@@ -86,8 +86,19 @@ rand_search = RandomizedSearchCV(estimator=classifier,
                                  return_train_score=True)
 rand_search.fit(X_ohe, label)
 
-# Save best performing model
+# Save model parameters and scores
+all_params = rand_search.cv_results_["params"]
+all_scores = rand_search.cv_results_["mean_test_score"]
 with open(os.path.join(model_dir, 'tuned_CNN_model.txt'), 'w') as f:
-    f.write('Best score: %.2f \n\n' % rand_search.best_score_)
-    f.write('Best parameters: \n')
+    for p, s in zip(all_params, all_scores):
+        f.write('Score: %.3f \n' % s)
+        f.write('Parameters: ')
+        f.write(str(p))
+        f.write('\n')
+        f.write(''.join(['='] * 20))
+        f.write('\n')
+    
+    f.write('\n\n')
+    f.write('Best score: %.3f \n' % rand_search.best_score_)
+    f.write('Best parameters: ')
     f.write(str(rand_search.best_params_))

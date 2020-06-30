@@ -54,20 +54,20 @@ def CNN_classification(dataset, filename, save_model=False):
               ['DROP', 0.2],
               ['POOL', 2, 1],
               ['FLAT'],
-              ['DENSE', 200]]
+              ['DENSE', 300]]
 
     # Create the CNN with above-specified parameters
     CNN_classifier = create_cnn(params, 'relu', None)
 
     # Compiling the CNN
-    opt = Adam(learning_rate=0.001)
+    opt = Adam(learning_rate=0.0001)
     CNN_classifier.compile(optimizer=opt, loss='binary_crossentropy',
                            metrics=['accuracy'])
 
     # Fit the CNN to the training set
     _ = CNN_classifier.fit(
         x=X_train, y=y_train, shuffle=True, validation_data=(X_val, y_val),
-        epochs=20, batch_size=16, verbose=2
+        epochs=20, batch_size=32, verbose=2
     )
 
     # Predicting the test set results
