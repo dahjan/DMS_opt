@@ -31,7 +31,6 @@ def LogReg2D_classification(dataset, filename):
     # Import training/test set
     X_train = dataset.train.loc[:, 'AASeq'].values
     X_test = dataset.test.loc[:, 'AASeq'].values
-    X_val = dataset.val.loc[:, 'AASeq'].values
 
     # One hot encode the sequences in 2D
     X_train = [one_hot_encoder(s=x, alphabet=IUPAC.protein) for x in X_train]
@@ -56,17 +55,6 @@ def LogReg2D_classification(dataset, filename):
         X_test_2D_list.append(X_test_2D)
     X_test = [x.flatten('F') for x in X_test_2D_list]
 
-    X_val = [one_hot_encoder(s=x, alphabet=IUPAC.protein) for x in X_val]
-    X_val_2D_list = []
-    for x in range(0, len(X_val)):
-        X_val_2D = np.empty([20, 0])
-        for y in range(0, X_val[x].shape[1]-1):
-            for z in range(0, X_val[x].shape[0]):
-                X_val_2D = np.concatenate(
-                    (X_val_2D, X_val[x][z, y]*X_val[x][:, y+1:]), axis=1)
-        X_val_2D_list.append(X_val_2D)
-    X_val = [x.flatten('F') for x in X_val_2D_list]
-
     # Extract labels of training/test set
     y_train = dataset.train.loc[:, 'AgClass'].values
     y_test = dataset.test.loc[:, 'AgClass'].values
@@ -88,7 +76,8 @@ def LogReg2D_classification(dataset, filename):
 
     # Precision-recall curve
     title = '2D Logistic Regression Precision-Recall curve (Train={})'.format(
-        filename)
+        filename
+    )
     plot_PR_curve(
         y_test, y_score[:, 1], plot_title=title,
         plot_dir='figures/2DLR_P-R_Test_{}.png'.format(filename)

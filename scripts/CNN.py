@@ -50,17 +50,17 @@ def CNN_classification(dataset, filename, save_model=False):
     y_val = dataset.val.loc[:, 'AgClass'].values
 
     # Set parameters for CNN
-    params = [['CONV', 400, 3, 1],
-              ['DROP', 0.5],
+    params = [['CONV', 600, 5, 1],
+              ['DROP', 0.2],
               ['POOL', 2, 1],
               ['FLAT'],
-              ['DENSE', 50]]
+              ['DENSE', 200]]
 
     # Create the CNN with above-specified parameters
     CNN_classifier = create_cnn(params, 'relu', None)
 
     # Compiling the CNN
-    opt = Adam(learning_rate=0.000075)
+    opt = Adam(learning_rate=0.001)
     CNN_classifier.compile(optimizer=opt, loss='binary_crossentropy',
                            metrics=['accuracy'])
 

@@ -1,9 +1,8 @@
 # Import libraries
-from Bio.Alphabet import IUPAC
 from sklearn.linear_model import LogisticRegression
 
 # Import custom functions
-from utils import one_hot_encoder, plot_ROC_curve, \
+from utils import prepare_data, plot_ROC_curve, \
     plot_PR_curve, calc_stat
 
 
@@ -27,22 +26,8 @@ def LogReg_classification(dataset, filename):
         and recall
     """
 
-    # Import training/test set
-    X_train = dataset.train.loc[:, 'AASeq'].values
-    X_test = dataset.test.loc[:, 'AASeq'].values
-    X_val = dataset.val.loc[:, 'AASeq'].values
-
-    # One hot encode the sequences
-    X_train = [one_hot_encoder(s=x, alphabet=IUPAC.protein) for x in X_train]
-    X_train = [x.flatten('F') for x in X_train]
-    X_test = [one_hot_encoder(s=x, alphabet=IUPAC.protein) for x in X_test]
-    X_test = [x.flatten('F') for x in X_test]
-    X_val = [one_hot_encoder(s=x, alphabet=IUPAC.protein) for x in X_val]
-    X_val = [x.flatten('F') for x in X_val]
-
-    # Extract labels of training/test set
-    y_train = dataset.train.loc[:, 'AgClass'].values
-    y_test = dataset.test.loc[:, 'AgClass'].values
+    # Import and one hot encode training/test set
+    X_train, X_test, y_train, y_test = prepare_data(dataset)
 
     # Fitting Logistic Regression to the training set
     LR_classifier = LogisticRegression(random_state=0)
@@ -60,7 +45,9 @@ def LogReg_classification(dataset, filename):
     )
 
     # Precision-recall curve
-    title = 'Logistic Regression Precision-Recall curve (Train={})'.format(filename)
+    title = 'Logistic Regression Precision-Recall curve (Train={})'.format(
+        filename
+    )
     plot_PR_curve(
         y_test, y_score[:, 1], plot_title=title,
         plot_dir='figures/LR_P-R_Test_{}.png'.format(filename)

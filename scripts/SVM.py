@@ -1,9 +1,8 @@
 # Import libraries
-from Bio.Alphabet import IUPAC
 from sklearn.svm import SVC
 
 # Import custom functions
-from utils import one_hot_encoder, plot_ROC_curve, \
+from utils import prepare_data, plot_ROC_curve, \
     plot_PR_curve, calc_stat
 
 
@@ -27,22 +26,8 @@ def SVM_classification(dataset, filename):
         and recall
     """
 
-    # Import training/test set
-    X_train = dataset.train.loc[:, 'AASeq'].values
-    X_test = dataset.test.loc[:, 'AASeq'].values
-    X_val = dataset.val.loc[:, 'AASeq'].values
-
-    # One hot encode the sequences
-    X_train = [one_hot_encoder(s=x, alphabet=IUPAC.protein) for x in X_train]
-    X_train = [x.flatten('F') for x in X_train]
-    X_test = [one_hot_encoder(s=x, alphabet=IUPAC.protein) for x in X_test]
-    X_test = [x.flatten('F') for x in X_test]
-    X_val = [one_hot_encoder(s=x, alphabet=IUPAC.protein) for x in X_val]
-    X_val = [x.flatten('F') for x in X_val]
-
-    # Extract labels of training/test set
-    y_train = dataset.train.loc[:, 'AgClass'].values
-    y_test = dataset.test.loc[:, 'AgClass'].values
+    # Import and one hot encode training/test set
+    X_train, X_test, y_train, y_test = prepare_data(dataset)
 
     # Fitting classifier to the training set
     SVM_classifier = SVC(kernel='rbf')

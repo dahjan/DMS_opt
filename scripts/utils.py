@@ -15,7 +15,8 @@ from Bio.Alphabet import IUPAC
 import matplotlib.pyplot as plt
 from sklearn.model_selection import train_test_split
 from sklearn.metrics import roc_curve, auc, precision_recall_curve, \
-    average_precision_score, confusion_matrix
+    average_precision_score, confusion_matrix, f1_score, \
+    matthews_corrcoef
 
 
 def load_input_data(filenames, Ag_class):
@@ -92,6 +93,39 @@ def mixcr_input(file_name, Ag_class):
     return x
 
 
+def prepare_data(dataset):
+    """
+    Extract training and test data with the corresponding labels from
+    the input dataset collection. The data is then one hot encoded.
+
+    Parameters
+    ---
+    dataset: A collection of Ag+ and Ag- data, separated
+        into training, test and validation set.
+
+    Returns
+    ---
+    X_train, X_test, y_train, y_test: one hot encoded trainin and
+        test data with the corresponding labels.
+    """
+
+    # Import training/test set
+    X_train = dataset.train.loc[:, 'AASeq'].values
+    X_test = dataset.test.loc[:, 'AASeq'].values
+
+    # One hot encode the sequences
+    X_train = [one_hot_encoder(s=x, alphabet=IUPAC.protein) for x in X_train]
+    X_train = [x.flatten('F') for x in X_train]
+    X_test = [one_hot_encoder(s=x, alphabet=IUPAC.protein) for x in X_test]
+    X_test = [x.flatten('F') for x in X_test]
+
+    # Extract labels of training/test set
+    y_train = dataset.train.loc[:, 'AgClass'].values
+    y_test = dataset.test.loc[:, 'AgClass'].values
+
+    return X_train, X_test, y_train, y_test
+
+
 def data_split(Ag_pos, Ag_neg):
     """
     Create a collection of the data set and split into the
@@ -105,6 +139,10 @@ def data_split(Ag_pos, Ag_neg):
     Ag_pos: Dataframe of the Ag+ data set
     Ag_neg: Dataframe of the Ag- data set
 
+    Returns
+    ---
+    Seq_Ag_data: A collection of Ag+ and Ag- data, separated
+        into training, test and validation set.
     """
 
     class Collection:
@@ -309,8 +347,12 @@ def calc_stat(y_test, y_pred):
     prec = (tp)/(tp+fp)
     recall = tp/(tp+fn)
 
+    # Calculate F1 and MCC score
+    f1 = f1_score(y_test, y_pred)
+    mcc = matthews_corrcoef(y_test, y_pred)
+
     # Return statistics
-    return np.array([acc, prec, recall])
+    return np.array([acc, prec, recall, f1, mcc])
 
 
 def create_ann():
@@ -419,13 +461,13 @@ def create_cnn(units_per_layer, activation, regularizer):
 
 
 def build_classifier(filters, kernels, strides, activation,
-                     dropout, dense, optimizer):
+                     dropout, dense, learn_rate):
     """
     This function builds a CNN classifier, whose hyperparameters
     can be optimized with sklearn. Those parameters are the input
     of this function:
         filters, kernels, strides, activation,
-        dropout, dense, optimizer
+        dropout, dense, learn_rate
 
     The function then returns the compiled CNN classifier.
     """
@@ -459,7 +501,8 @@ def build_classifier(filters, kernels, strides, activation,
     classifier.add(keras.layers.Dense(1, activation='sigmoid'))
 
     # Compiling the classifier
-    classifier.compile(optimizer=optimizer,
+    opt = keras.optimizers.Adam(lr=learn_rate)
+    classifier.compile(optimizer=opt,
                        loss='binary_crossentropy', metrics=['accuracy'])
 
     return classifier
@@ -561,39 +604,10 @@ def plot_PR_curve(y_test, y_score, plot_title, plot_dir):
     plt.clf()
 
 
-def progbar(i, iter_per_epoch, message='', bar_length=50):
-    """
-    Progress bar, written by Simon Friedensohn.
-
-    Prints a progress bar in the following form:
-        [==                       ] 8%
-    """
-
-    # Calculate current progress
-    j = (i % iter_per_epoch) + 1
-
-    # Create and print the progress bar
-    perc = int(100. * j / iter_per_epoch)
-    prog = ''.join(['='] * (bar_length * perc // 100))
-    template = "\r[{:" + str(bar_length) + "s}] {:3d}% {:s}"
-    string = template.format(prog, perc, message)
-    sys.stdout.write(string)
-    sys.stdout.flush()
-
-    # Terminating condition
-    end_epoch = (j == iter_per_epoch)
-    if end_epoch:
-        prog = ''.join(['='] * (bar_length))
-        string = template.format(prog, 100, message)
-        sys.stdout.write(string)
-        sys.stdout.flush()
-
-
 def seq_classification(classifier, flatten_input=False):
     """
     In silico generate sequences and classify them as a binding
     or non-binding sequence respectively.
-
     Parameters
     ---
     classifier: The neural network classification model to use.
@@ -733,3 +747,31 @@ def run_classification(current_seq, classifier, flatten_input):
     seq_pred = classifier.predict(x=ohe_seq)
 
     return seq_pred
+
+
+def progbar(i, iter_per_epoch, message='', bar_length=50):
+    """
+    Progress bar, written by Simon Friedensohn.
+
+    Prints a progress bar in the following form:
+        [==                       ] 8%
+    """
+
+    # Calculate current progress
+    j = (i % iter_per_epoch) + 1
+
+    # Create and print the progress bar
+    perc = int(100. * j / iter_per_epoch)
+    prog = ''.join(['='] * (bar_length * perc // 100))
+    template = "\r[{:" + str(bar_length) + "s}] {:3d}% {:s}"
+    string = template.format(prog, perc, message)
+    sys.stdout.write(string)
+    sys.stdout.flush()
+
+    # Terminating condition
+    end_epoch = (j == iter_per_epoch)
+    if end_epoch:
+        prog = ''.join(['='] * (bar_length))
+        string = template.format(prog, 100, message)
+        sys.stdout.write(string)
+        sys.stdout.flush()

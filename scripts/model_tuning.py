@@ -70,15 +70,14 @@ classifier = keras.wrappers.scikit_learn.KerasClassifier(
 )
 
 # Parameters to tune
-parameters = {'batch_size': [16, 32],
-              'nb_epoch': [10, 20, 30],
-              'filters': [200, 400, 800],
-              'kernels': [3, 5],
+parameters = {'learn_rate': [0.00005, 0.0001, 0.001],
+              'batch_size': [16, 32],
+              'filters': [400, 600, 800],
+              'kernels': [2, 3, 5],
               'strides': [1, 2],
               'activation': ['sigmoid', 'relu'],
-              'dropout': [0.2, 0.5],
-              'dense': [50, 100, 200],
-              'optimizer': ['adam', 'SGD']}
+              'dropout': [0.2, 0.4, 0.6],
+              'dense': [100, 200, 300]}
 
 # Run randomized search on all CPUs
 rand_search = RandomizedSearchCV(estimator=classifier,

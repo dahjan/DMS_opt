@@ -68,14 +68,16 @@ mHER_all_copy = copy.copy(mHER_all_adj)
 os.makedirs('figures', exist_ok=True)
 
 # Create columns for final dataframe
-ML_columns = ('Train_size', 'LogReg_acc', 'LogReg_prec',
-              'LogReg_recall', 'LogReg2D_acc', 'LogReg2D_prec',
-              'LogReg2D_recall', 'KNN_acc', 'KNN_prec',
-              'KNN_recall', 'LSVM_acc', 'LSVM_prec',
-              'LSVM_recall', 'SVM_acc', 'SVM_prec', 'SVM_recall',
-              'RF_acc', 'RF_prec', 'RF_recall', 'ANN_acc',
-              'ANN_prec', 'ANN_recall', 'CNN_acc', 'CNN_prec',
-              'CNN_recall', 'RNN_acc', 'RNN_prec', 'RNN_recall')
+ML_columns = ('Train_size', 'LogReg_acc', 'LogReg_prec', 'LogReg_recall',
+              'LogReg_F1', 'LogReg_MCC', 'LogReg2D_acc', 'LogReg2D_prec',
+              'LogReg2D_recall', 'LogReg2D_F1', 'LogReg2D_MCC',
+              'KNN_acc', 'KNN_prec', 'KNN_recall', 'KNN_F1', 'KNN_MCC',
+              'LSVM_acc', 'LSVM_prec', 'LSVM_recall', 'LSVM_F1', 'LSVM_MCC',
+              'SVM_acc', 'SVM_prec', 'SVM_recall', 'SVM_F1', 'SVM_MCC',
+              'RF_acc', 'RF_prec', 'RF_recall', 'RF_F1', 'RF_MCC',
+              'ANN_acc', 'ANN_prec', 'ANN_recall', 'ANN_F1', 'ANN_MCC',
+              'CNN_acc', 'CNN_prec', 'CNN_recall', 'CNN_F1', 'CNN_MCC',
+              'RNN_acc', 'RNN_prec', 'RNN_recall', 'RNN_F1', 'RNN_MCC')
 ML_df = pd.DataFrame(columns=ML_columns)
 
 # Add unused sequences to training set
