@@ -461,7 +461,7 @@ def create_cnn(units_per_layer, activation, regularizer):
 
 
 def build_classifier(filters, kernels, strides, activation,
-                     dropout, dense, learn_rate):
+                     dropout, dense):
     """
     This function builds a CNN classifier, whose hyperparameters
     can be optimized with sklearn. Those parameters are the input
@@ -501,9 +501,8 @@ def build_classifier(filters, kernels, strides, activation,
     classifier.add(keras.layers.Dense(1, activation='sigmoid'))
 
     # Compiling the classifier
-    opt = keras.optimizers.Adam(lr=learn_rate)
-    classifier.compile(optimizer=opt,
-                       loss='binary_crossentropy', metrics=['accuracy'])
+    classifier.compile(optimizer='adam', loss='binary_crossentropy',
+                       metrics=['accuracy'])
 
     return classifier
 
@@ -625,17 +624,17 @@ def seq_classification(classifier, flatten_input=False):
 
     # Define valid amino acids per position
     AA_per_pos = [
-        ['Y', 'W'],
+        ['F', 'Y', 'W'],
         ['A', 'D', 'E', 'G', 'H', 'I', 'K', 'L',
-         'N', 'P', 'Q', 'R', 'S', 'T', 'V'],
+         'M', 'N', 'P', 'Q', 'R', 'S', 'T', 'V'],
         ['A', 'D', 'E', 'G', 'H', 'I', 'K', 'L',
-         'N', 'P', 'Q', 'R', 'S', 'T', 'V'],
-        ['A', 'D', 'F', 'G', 'H', 'I', 'L', 'N',
-         'P', 'R', 'S', 'T', 'V', 'Y'],
-        ['A', 'G', 'H', 'S', ],
-        ['F', 'L'],
+         'M', 'N', 'P', 'Q', 'R', 'S', 'T', 'V'],
+        ['A', 'C', 'D', 'F', 'G', 'H', 'I', 'L',
+         'N', 'P', 'R', 'S', 'T', 'V', 'Y'],
+        ['A', 'G', 'S'],
+        ['F', 'L', 'M'],
         ['Y'],
-        ['A', 'E', 'K', 'L', 'P', 'Q', 'T', 'V'],
+        ['A', 'E', 'K', 'L', 'M', 'P', 'Q', 'T', 'V'],
         ['F', 'H', 'I', 'L', 'N', 'Y'],
         ['A', 'D', 'E', 'H', 'I', 'K', 'L', 'M',
          'N', 'P', 'Q', 'T', 'V']]

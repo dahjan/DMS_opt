@@ -70,12 +70,10 @@ classifier = keras.wrappers.scikit_learn.KerasClassifier(
 )
 
 # Parameters to tune
-parameters = {'learn_rate': [0.00005, 0.0001, 0.001],
-              'batch_size': [16, 32],
-              'filters': [400, 600, 800],
+parameters = {'filters': [400, 600, 800],
               'kernels': [2, 3, 5],
               'strides': [1, 2],
-              'activation': ['sigmoid', 'relu'],
+              'activation': ['relu'],
               'dropout': [0.2, 0.4, 0.6],
               'dense': [100, 200, 300]}
 
@@ -83,6 +81,7 @@ parameters = {'learn_rate': [0.00005, 0.0001, 0.001],
 rand_search = RandomizedSearchCV(estimator=classifier,
                                  param_distributions=parameters,
                                  n_jobs=-1,
+                                 n_iter=20,
                                  return_train_score=True)
 rand_search.fit(X_ohe, label)
 
@@ -97,7 +96,7 @@ with open(os.path.join(model_dir, 'tuned_CNN_model.txt'), 'w') as f:
         f.write('\n')
         f.write(''.join(['='] * 20))
         f.write('\n')
-    
+
     f.write('\n\n')
     f.write('Best score: %.3f \n' % rand_search.best_score_)
     f.write('Best parameters: ')

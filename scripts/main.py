@@ -51,6 +51,10 @@ ab_pos_files = [
 ]
 mHER_H3_AgPos = load_input_data(ab_pos_files, Ag_class=1)
 
+# Save those files
+mHER_H3_AgNeg.to_csv('data/mHER_H3_AgNeg.csv')
+mHER_H3_AgPos.to_csv('data/mHER_H3_AgPos.csv')
+
 
 # ----------------------
 # Run classifiers
@@ -90,7 +94,7 @@ for x in np.linspace(0, 10000, 11):
     )
 
     # Shuffle training data
-    mHER_all_copy.train = mHER_all_adj.train.sample(
+    mHER_all_copy.train = mHER_all_copy.train.sample(
         frac=1
     ).reset_index(drop=True)
     mHER_all_copy.test = copy.copy(mHER_all_adj.test)
@@ -150,12 +154,19 @@ mHER_H3_all = data_split(mHER_H3_AgPos, mHER_H3_AgNeg)
 model_dir = 'classification'
 os.makedirs(model_dir, exist_ok=True)
 
+# Use tuned model parameters for CNN (performed in separate script)
+params = [['CONV', 400, 5, 1],
+          ['DROP', 0.2],
+          ['POOL', 2, 1],
+          ['FLAT'],
+          ['DENSE', 300]]
+
 # Train and test ANN and CNN with unadjusted (class split) data set
 ANN_all = ANN_classification(
     mHER_H3_all, 'All_data', save_model=model_dir
 )
 CNN_all = CNN_classification(
-    mHER_H3_all, 'All_data', save_model=model_dir
+    mHER_H3_all, 'All_data', save_model=model_dir, params=params
 )
 # RNN_all = RNN_classification(
 #     mHER_H3_all, 'All_data', save_model=model_dir
@@ -174,12 +185,12 @@ ANN_all_df = pd.DataFrame(
     {'AASeq': ANN_all_seq, 'Pred': ANN_all_pred}, columns=['AASeq', 'Pred']
 )
 ANN_all_df.to_csv(
-    os.path.join(model_dir, 'ANN_H3_all_2020-03.csv'), sep=','
+    os.path.join(model_dir, 'ANN_H3_all.csv')
 )
 
 CNN_all_df = pd.DataFrame(
     {'AASeq': CNN_all_seq, 'Pred': CNN_all_pred}, columns=['AASeq', 'Pred']
 )
 CNN_all_df.to_csv(
-    os.path.join(model_dir, 'CNN_H3_all_2020-03.csv'), sep=','
+    os.path.join(model_dir, 'CNN_H3_all.csv')
 )

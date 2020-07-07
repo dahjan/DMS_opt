@@ -10,7 +10,7 @@ from utils import one_hot_encoder, create_cnn, \
     plot_ROC_curve, plot_PR_curve, calc_stat
 
 
-def CNN_classification(dataset, filename, save_model=False):
+def CNN_classification(dataset, filename, save_model=False, params=None):
     """
     Classification of data with a convolutional neural
     network, followed by plotting of ROC and PR curves.
@@ -29,6 +29,10 @@ def CNN_classification(dataset, filename, save_model=False):
        will be returned in this case.
        If False, an array containing classification accuracy,
        precision and recall will be returned instead.
+
+    params: optional; if provided, should specify the optimized
+        model parameters that were determined in a separate model
+        tuning step. If None, model parameters are hard-coded.
     """
 
     # Import training/test set
@@ -50,24 +54,25 @@ def CNN_classification(dataset, filename, save_model=False):
     y_val = dataset.val.loc[:, 'AgClass'].values
 
     # Set parameters for CNN
-    params = [['CONV', 600, 5, 1],
-              ['DROP', 0.2],
-              ['POOL', 2, 1],
-              ['FLAT'],
-              ['DENSE', 300]]
+    if not params:
+        params = [['CONV', 400, 3, 1],
+                  ['DROP', 0.5],
+                  ['POOL', 2, 1],
+                  ['FLAT'],
+                  ['DENSE', 50]]
 
     # Create the CNN with above-specified parameters
     CNN_classifier = create_cnn(params, 'relu', None)
 
     # Compiling the CNN
-    opt = Adam(learning_rate=0.0001)
+    opt = Adam(learning_rate=0.000075)
     CNN_classifier.compile(optimizer=opt, loss='binary_crossentropy',
                            metrics=['accuracy'])
 
     # Fit the CNN to the training set
     _ = CNN_classifier.fit(
         x=X_train, y=y_train, shuffle=True, validation_data=(X_val, y_val),
-        epochs=20, batch_size=32, verbose=2
+        epochs=20, batch_size=16, verbose=2
     )
 
     # Predicting the test set results
