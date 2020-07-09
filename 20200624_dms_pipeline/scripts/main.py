@@ -55,6 +55,7 @@ mHER_H3_AgPos = load_input_data(ab_pos_files, Ag_class=1)
 mHER_H3_AgNeg.to_csv('data/mHER_H3_AgNeg.csv')
 mHER_H3_AgPos.to_csv('data/mHER_H3_AgPos.csv')
 
+"""
 
 # ----------------------
 # Run classifiers
@@ -141,6 +142,7 @@ for x in np.linspace(0, 10000, 11):
 # Save statistics to file
 ML_df.to_csv('figures/ML_increase_negs_combined.csv')
 
+"""
 
 # ----------------------
 # Run classifiers on in

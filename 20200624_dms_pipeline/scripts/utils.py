@@ -357,7 +357,7 @@ def calc_stat(y_test, y_pred):
 
 def create_ann():
     """
-    Generate the ANN layers with Keras wrapper with hard-coded
+    Generate the ANN layers with a Keras wrapper, using hard-coded
     layers and activation functions.
     """
 
@@ -405,7 +405,7 @@ def create_ann():
 
 def create_cnn(units_per_layer, activation, regularizer):
     """
-    Generate the CNN layers with Keras wrapper
+    Generate the CNN layers with a Keras wrapper.
 
     Parameters
     ---
@@ -509,7 +509,7 @@ def build_classifier(filters, kernels, strides, activation,
 
 def create_rnn():
     """
-    Generate the ANN layers with Keras wrapper with hard-coded
+    Generate the RNN layers with a Keras wrapper, and hard-coded
     layers and activation functions.
     """
 
