@@ -28,97 +28,96 @@ create_global_variables()
 create_all_dirs()
 
 
-# ----------------------
-# Prepare classification
-# data sets
-# ----------------------
+# # ----------------------
+# # Prepare classification
+# # data sets
+# # ----------------------
+# 
+# # Load in the .csv output files from Python containing the amino acid sequences and prediction values
+# ANN_df <- read_csv("data/ANN_H3_all.csv") %>%
+#   select(AASeq, Pred)
+# CNN_df <- read_csv("data/CNN_H3_all.csv") %>%
+#   select(AASeq, Pred)
+# 
+# # Filter out sequences with a prediction values less than 0.70
+# ANN_filt_pred <- filter(ANN_df, Pred > 0.70)
+# CNN_filt_pred <- filter(CNN_df, Pred > 0.70)
+# 
+# # Identify the consensus sequences between the two models
+# consensus <- inner_join(ANN_filt_pred, CNN_filt_pred, by = "AASeq") %>%
+#   dplyr::rename(ANN_pred = Pred.x, CNN_pred = Pred.y) %>%
+#   mutate(Avg_Pred = rowMeans(select(., c("ANN_pred", "CNN_pred"))))
+# 
+# # Pad amino acid sequences with 5' CSR residues and 3' YW residues
+# consensus$AASeq <- paste("CSR", consensus$AASeq, "YW", sep = "")
+# 
+# # Calculate the net charge of the amino acid sequence and add the net charge of the entire VH sequence minus CDRH3
+# consensus <- consensus %>%
+#   mutate(VHNetCharge = sapply(AASeq, function(x) net_charge(x)) +  net_charge(Her_VH_mCDR3),
+#          FabNetCharge = VHNetCharge + net_charge(Her_VK),
+#          FvCSP = VHNetCharge * net_charge(Her_VK))
+# 
+# # Calculate the hydrophobicity index
+# consensus <- consensus %>%
+#   mutate(CDR3_HI = sapply(AASeq, function(x) HIndex(x)),
+#          HISum = CDR3_HI + HIndex(Her_CDRL1) + HIndex(Her_CDRL3))
+# 
+# # Calculate the Levenshtein distance from the wild-type CDRH3 to CDRH3 variants
+# consensus$LD <- sapply(consensus$AASeq, function(x) stringdist(x, Her_CDRH3, method = "lv"))
+# 
+# # Pad CDR3 sequences with +/-10 amino acids for use with CamSol and NetMHCIIpan
+# consensus <- consensus %>%
+#   mutate(paddedAA = paste(substr(Her_VH, gregexpr("C[ASTV][KRST]", Her_VH)[[1]] - 10,
+#                                  gregexpr("C[ASTV][KRST]", Her_VH)[[1]] - 1),
+#                           AASeq, substr(Her_VH, gregexpr("WGQG", Her_VH)[[1]] + 1,
+#                                         gregexpr("WGQG", Her_VH)[[1]] + 10), sep = ""))
+# 
+# 
+# # ----------------------
+# # Prepare data of
+# # binding sequences
+# # ----------------------
+# 
+# # Load binding sequences
+# AgPos_df <- read_csv("data/mHER_H3_AgPos.csv") %>%
+#   select(-X1)
+# 
+# # Remove duplicated sequences
+# AgPos_df <- AgPos_df %>%
+#   distinct(AASeq, .keep_all = TRUE)
+# 
+# # Pad amino acid sequences with 5' CSR residues and 3' YW residues
+# AgPos_df$AASeq <- paste("CSR", AgPos_df$AASeq, "YW", sep = "")
+# 
+# # Calculate the Fab net charge, FvCSP, and L1+L3+H3 hydrophobicity index sum
+# AgPos_df <- AgPos_df %>%
+#   mutate(VHNetCharge = sapply(AASeq, function(x) net_charge(x)) + net_charge(Her_VH_mCDR3),
+#          FabNetCharge = VHNetCharge + net_charge(Her_VK),
+#          FvCSP = VHNetCharge*net_charge(Her_VK))
+# 
+# # Calculate the hydrophobicity index
+# AgPos_df <- AgPos_df %>%
+#   mutate(CDR3_HI = sapply(AASeq, function(x) HIndex(x)),
+#          HISum = CDR3_HI + HIndex(Her_CDRL1) + HIndex(Her_CDRL3))
+# 
+# # Calculate the Levenshtein distance from the wild-type CDRH3 to CDRH3 variants
+# AgPos_df$LD <- sapply(AgPos_df$AASeq, function(x) stringdist(x, Her_CDRH3, method = "lv"))
+# 
+# # Pad CDR3 sequences with +/-10 amino acids for use with CamSol and NetMHCIIpan
+# AgPos_df <- AgPos_df %>%
+#   mutate(paddedAA = paste(substr(Her_VH, gregexpr("C[ASTV][KRST]", Her_VH)[[1]] - 10,
+#                                  gregexpr("C[ASTV][KRST]", Her_VH)[[1]] - 1),
+#                           AASeq, substr(Her_VH, gregexpr("WGQG", Her_VH)[[1]] + 1,
+#                                         gregexpr("WGQG", Her_VH)[[1]] + 10), sep = ""))
+# 
+# # Save dataframes
+# consensus %>%
+#   write_csv(., "data/df_consensus.csv")
+# AgPos_df %>%
+#   write_csv(., "data/df_AgPos.csv")
 
-# Load in the .csv output files from Python containing the amino acid sequences and prediction values
-ANN_df <- read_csv("data/ANN_H3_all.csv") %>%
-  select(AASeq, Pred)
-CNN_df <- read_csv("data/CNN_H3_all.csv") %>%
-  select(AASeq, Pred)
-
-# Filter out sequences with a prediction values less than 0.70
-ANN_filt_pred <- filter(ANN_df, Pred > 0.70)
-CNN_filt_pred <- filter(CNN_df, Pred > 0.70)
-
-# Identify the consensus sequences between the two models
-consensus <- inner_join(ANN_filt_pred, CNN_filt_pred, by = "AASeq") %>%
-  dplyr::rename(ANN_pred = Pred.x, CNN_pred = Pred.y) %>%
-  mutate(Avg_Pred = rowMeans(select(., c("ANN_pred", "CNN_pred"))))
-
-# Pad amino acid sequences with 5' CSR residues and 3' YW residues
-consensus$AASeq <- paste("CSR", consensus$AASeq, "YW", sep = "")
-
-# Calculate the net charge of the amino acid sequence and add the net charge of the entire VH sequence minus CDRH3
-system.time(
-  consensus <- consensus %>%
-    mutate(VHNetCharge = sapply(AASeq, function(x) net_charge(x)) +  net_charge(Her_VH_mCDR3),
-           FabNetCharge = VHNetCharge + net_charge(Her_VK),
-           FvCSP = VHNetCharge * net_charge(Her_VK))
-)
-
-# Calculate the hydrophobicity index
-consensus <- consensus %>%
-  mutate(CDR3_HI = sapply(AASeq, function(x) HIndex(x)),
-         HISum = CDR3_HI + HIndex(Her_CDRL1) + HIndex(Her_CDRL3))
-
-# Calculate the Levenshtein distance from the wild-type CDRH3 to CDRH3 variants
-consensus$LD <- sapply(consensus$AASeq, function(x) stringdist(x, Her_CDRH3, method = "lv"))
-
-# Pad CDR3 sequences with +/-10 amino acids for use with CamSol and NetMHCIIpan
-consensus <- consensus %>%
-  mutate(paddedAA = paste(substr(Her_VH, gregexpr("C[ASTV][KRST]", Her_VH)[[1]] - 10,
-                                 gregexpr("C[ASTV][KRST]", Her_VH)[[1]] - 1),
-                          AASeq, substr(Her_VH, gregexpr("WGQG", Her_VH)[[1]] + 1,
-                                        gregexpr("WGQG", Her_VH)[[1]] + 10), sep = ""))
-
-
-# ----------------------
-# Prepare data of
-# binding sequences
-# ----------------------
-
-# Load binding sequences
-AgPos_df <- read_csv("data/mHER_H3_AgPos.csv") %>%
-  select(-X1)
-
-# Remove duplicated sequences
-AgPos_df <- AgPos_df %>%
-  distinct(AASeq, .keep_all = TRUE)
-
-# Pad amino acid sequences with 5' CSR residues and 3' YW residues
-AgPos_df$AASeq <- paste("CSR", AgPos_df$AASeq, "YW", sep = "")
-
-# Calculate the Fab net charge, FvCSP, and L1+L3+H3 hydrophobicity index sum
-AgPos_df <- AgPos_df %>%
-  mutate(VHNetCharge = sapply(AASeq, function(x) net_charge(x)) + net_charge(Her_VH_mCDR3),
-         FabNetCharge = VHNetCharge + net_charge(Her_VK),
-         FvCSP = VHNetCharge*net_charge(Her_VK))
-
-# Calculate the hydrophobicity index
-AgPos_df <- AgPos_df %>%
-  mutate(CDR3_HI = sapply(AASeq, function(x) HIndex(x)),
-         HISum = CDR3_HI + HIndex(Her_CDRL1) + HIndex(Her_CDRL3))
-
-# Calculate the Levenshtein distance from the wild-type CDRH3 to CDRH3 variants
-AgPos_df$LD <- sapply(AgPos_df$AASeq, function(x) stringdist(x, Her_CDRH3, method = "lv"))
-
-# Pad CDR3 sequences with +/-10 amino acids for use with CamSol and NetMHCIIpan
-AgPos_df <- AgPos_df %>%
-  mutate(paddedAA = paste(substr(Her_VH, gregexpr("C[ASTV][KRST]", Her_VH)[[1]] - 10,
-                                 gregexpr("C[ASTV][KRST]", Her_VH)[[1]] - 1),
-                          AASeq, substr(Her_VH, gregexpr("WGQG", Her_VH)[[1]] + 1,
-                                        gregexpr("WGQG", Her_VH)[[1]] + 10), sep = ""))
-
-# Save dataframes
-consensus %>%
-  write_csv(., "data/df_consensus.csv")
-AgPos_df %>%
-  write_csv(., "data/df_AgPos.csv")
-# consensus <- read_csv("data/df_consensus.csv")
-# AgPos_df <- read_csv("data/df_AgPos.csv")
+consensus <- read_csv("data/df_consensus.csv")
+AgPos_df <- read_csv("data/df_AgPos.csv")
 
 
 # ----------------------
@@ -191,52 +190,14 @@ AgPos_filt_hi <- filter(AgPos_filt_fv, (HISum > 0) & (HISum < 4))
 if (dim(AgPos_filt_hi)[1] > 5000) {
   warning("AgPos_filt_hi contains more than 5000 sequences.")
 }
-VH_fq2 <- AAStringSet(AgPos_filt_hi$paddedAA)
-names(VH_fq2) <- AgPos_filt_hi$AASeq
-writeXStringSet(VH_fq2, "data/fasta/AgPos_VH_CamSol.fasta")
-
-# Load in the Camsol input file from Pietro Sormanni
-CamSol_df <- read_csv("data/VH_CamSol.csv") %>%
-  select(AASeq = `#seq_id`, CamSol = intrinsic_solublity_score)
-
-# Add CamSol results to the previous dataframe
-consensus_filt_hi <- left_join(consensus_filt_hi, CamSol_df, by = "AASeq")
-num_na <- sum(is.na(consensus_filt_hi))
-if (num_na > 0) {
-  warning(paste0("There are ", num_na, " sequences with non-defined CamSol score!"))
-}
-
-# Select rows with NA values from this dataframe
-consensus_is_na <- consensus_filt_hi[is.na(consensus_filt_hi$CamSol), ]
-
-# Split data apart into 5000 sequences each and write FASTA file
-VH_fq <- AAStringSet(consensus_is_na$paddedAA)
-names(VH_fq) <- consensus_is_na$AASeq
-writeXStringSet(VH_fq, "data/fasta/VH_CamSol.fasta")
-
-
-# n_seq <- length(VH_fq)
-# n_files <- ceiling(n_seq/5000)
-# 
-# for (i in c(1:n_files)) {
-#   filename <- paste0("data/fasta/VH_CamSol-", i, ".fasta")
-#   if (i == n_files) {
-#     writeXStringSet(VH_fq[((i - 1)*5000 + 1):n_seq],
-#                     filename)
-#   } else {
-#     writeXStringSet(VH_fq[((i - 1)*5000 + 1):(i*5000)],
-#                     filename)
-#   }
-# }
+VH_fq <- AAStringSet(AgPos_filt_hi$paddedAA)
+names(VH_fq) <- AgPos_filt_hi$AASeq
+writeXStringSet(VH_fq, "data/fasta/AgPos_VH_CamSol.fasta")
 
 # IMPORTANT INFO:
-# The FASTA files need to be run on the CamSol web server!
+# This FASTA file needs to be run on the CamSol web server!
 
-# Load all CamSol results
-# missing_consensus <- lapply(Sys.glob("data/camsol/CamSol*.txt"), read_tsv) %>%
-#   bind_rows() %>%
-#   select(Name, CamSol = `protein variant score`)
-
+# Load the CamSol result for AgPos sequences
 Ag_CamSol_df <- read_tsv("data/camsol/AgCamSol.txt") %>%
   select(Name, CamSol = `protein variant score`)
 
@@ -247,9 +208,20 @@ AgPos_filt_hi <- inner_join(AgPos_filt_hi, Ag_CamSol_df,
 len_after = dim(AgPos_filt_hi)[1]
 
 # Assert that length of dataframe has not changed
-stopifnot("Data lost/added during join operation." = (len_before == len_after))
+stopifnot("Data lost/added during join operation 1." = (len_before == len_after))
 
-break
+# Load the CamSol input file from Pietro Sormanni
+CamSol_df <- read_csv("data/camsol/VH_CamSol.csv") %>%
+  select(AASeq, CamSol)
+
+# Add CamSol results to the previous dataframe
+len_before = dim(consensus_filt_hi)[1]
+consensus_filt_hi <- inner_join(consensus_filt_hi, CamSol_df, by = "AASeq")
+len_after = dim(consensus_filt_hi)[1]
+
+# Assert that length of dataframe has not changed
+stopifnot("Data lost/added during join operation 2." = (len_before == len_after))
+
 
 # ----------------------
 # Generate figure:
