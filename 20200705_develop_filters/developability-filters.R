@@ -240,7 +240,7 @@ CamSol_data <- rbind(CamSol_data, tmp)
 # CamSol score distribution
 ggplot(data = CamSol_data, aes(CamSol, fill = data, color = data)) +
   plot_geom_histogram(binwidth = 0.2, title = "CamSol Score Distribution",
-                      x_lab = "CamSol Score", lim = c(1,1e5))
+                      x_lab = "CamSol Score", lim = c(1,NaN))
 ggsave("figures/final/VH_CamSol.pdf", width = 5.08, height = 3.8)
 
 
@@ -263,14 +263,14 @@ names(VH_fq2) <- AgPos_filt_cs$AASeq
 writeXStringSet(VH_fq2, "data/fasta/Ag_NetMHCII.fasta")
 
 # Run NetMHC code with Bash
-system("./run_netMHCIIpan.sh")
+# system("./run_netMHCIIpan.sh")
 
 # Read in NetMHC output
 # Only select ID and Rank information
-VH_netMHC_df <- read_tsv("data/VH_NetMHCIIpan.txt", skip = 1) %>%
+VH_netMHC_df <- read_tsv("data/netMHC/VH_NetMHCIIpan.txt", skip = 1) %>%
   select(ID, starts_with("Rank"))
 
-Ag_netMHC_df <- read_tsv("data/Ag_NetMHCIIpan.txt", skip = 1) %>%
+Ag_netMHC_df <- read_tsv("data/netMHC/Ag_NetMHCIIpan.txt", skip = 1) %>%
   select(ID, starts_with("Rank"))
 
 # Save unique IDs
@@ -319,7 +319,7 @@ netMHC_data <- rbind(netMHC_data, tmp)
 # NetMHC score distribution
 ggplot(data = netMHC_data, aes(minNetMHC, fill = data, color = data)) +
   plot_geom_histogram(binwidth = NULL, title = "Minimum NetMHC Distribution",
-                      x_lab = "Minimum NetMHC Score", lim = c(1, 1e5))
+                      x_lab = "Minimum NetMHC Score", lim = c(1,NaN))
 ggsave("figures/final/VH_MinNetMHC.pdf", width = 5.08, height = 3.8)
 
 
@@ -344,7 +344,7 @@ netMHC_data2 <- rbind(netMHC_data2, tmp)
 # NminNetMHC score distribution
 ggplot(data = netMHC_data2, aes(NminNetMHC, fill = data, color = data)) +
   plot_geom_histogram(binwidth = NULL, title = "15-mers with % Rank < 10",
-                      x_lab = "No. 15-mers", lim = c(1, 1e5))
+                      x_lab = "No. 15-mers", lim = c(1,NaN))
 ggsave("figures/final/VH_NMinNetMHC.pdf", width = 5.08, height = 3.8)
 
 

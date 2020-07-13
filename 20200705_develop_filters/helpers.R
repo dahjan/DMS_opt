@@ -46,6 +46,7 @@ create_all_dirs <- function(){
   dir.create("data", showWarnings = FALSE)
   dir.create("data/fasta", showWarnings = FALSE)
   dir.create("data/camsol", showWarnings = FALSE)
+  dir.create("data/netMHC", showWarnings = FALSE)
 }
 
 
