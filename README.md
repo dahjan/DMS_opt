@@ -33,17 +33,17 @@ The full deep learning analysis, written in Python, can be summarized into three
  2. The best-performing model, a convolutional neural network (CNN), is tuned with a randomized search on hyper parameters.
  3. The optimized CNN model is used to identify antigen-binding sequences from an *in-silico* generated library.
 
-Step 1 and 3 are performed simultaneously, by running the following command:
+Steps 1 and 3 are performed simultaneously, by running the following command:
 
 `python scripts/main.py`
 
-This will produce the folder [figures](figures/), where the performance of different models is visualized, and the folder [classification](classification/) with the CNN model summary and the predicted values for the *in-silico* generated library.
+This will produce visualizations of the model performances, and create a CSV file with the predicted values for the *in-silico* generated library.
 
 Inside the main script, hyper parameters were already selected according to the optimized model. However, the randomized search can be run again:
 
 `python scripts/model_tuning.py`
 
-A folder [model_tuning](model_tuning/) will be created, containing the best hyper paramter settings and the corresponding mean cross-validated score. Those parameters can then be included inside the main script (`params`).
+A folder `model_tuning/` will be created, containing the best hyper paramter settings and the corresponding mean cross-validated score. Those parameters can then be included inside the main script (`params`).
 
 ### Applying developability filters
 
@@ -51,19 +51,7 @@ With the results from the previous analysis, developability filters can be appli
 
 `R --vanilla < developability-filters.R`
 
-The developability filter based on CamSol solubility scores [[3](http://dx.doi.org/10.1016/j.jmb.2014.09.026)]-[[4](https://www.nature.com/articles/s41598-017-07800-w)] needs to be run on their [web server](http://www-mvsoftware.ch.cam.ac.uk/index.php/camsolintrinsic). Additionally, netMHCIIpan [[5](https://www.ncbi.nlm.nih.gov/pubmed/29315598)], version 3.2, needs to be downloaded and installed under following [link](https://services.healthtech.dtu.dk/service.php?NetMHCIIpan-3.2), otherwise the R script will terminate.
-
-## Datasets used
-
-DMS23_Library
-
-DMS23_HEL1
-
-DMS23_HEL2
-
-DMS23_HEL3_High
-
-DMS23_HEL3_Low
+The developability filter based on CamSol solubility scores ([[3](http://dx.doi.org/10.1016/j.jmb.2014.09.026)]-[[4](https://www.nature.com/articles/s41598-017-07800-w)]) needs to be run on their [web server](http://www-mvsoftware.ch.cam.ac.uk/index.php/camsolintrinsic). Additionally, netMHCIIpan [[5](https://www.ncbi.nlm.nih.gov/pubmed/29315598)], version 3.2, needs to be downloaded and installed under following [link](https://services.healthtech.dtu.dk/service.php?NetMHCIIpan-3.2), otherwise the R script will terminate.
 
 ## [License](https://raw.githubusercontent.com/dahjan/DMS_opt/master/LICENSE.md)
 
