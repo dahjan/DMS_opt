@@ -1,99 +1,57 @@
-![Python Version](https://img.shields.io/badge/Python%20Version-3.6.5-blue.svg)
-![R Version](https://img.shields.io/badge/R%20Version-3.6.0-blue.svg)
+![Python Version](https://img.shields.io/badge/Python%20Version-3.7.1-blue.svg)
+![R Version](https://img.shields.io/badge/R%20Version-3.6.0-green.svg)
+
+# Deep learning enables therapeutic antibody optimization in mammalian cells by deciphering high-dimensional protein sequence space
 
 ## Overview
----
 
-This repository contains the scripts to perform therapeutic antibody optimization with deep learning, as described in Mason et al., 2019 [1].
-
-This repository summarizes the pipeline that was used to op
+This repository contains the scripts to perform therapeutic antibody optimization with deep learning, as described in Mason et al., 2019 [[1](https://www.biorxiv.org/content/10.1101/617860v2.abstract)]. The Python scripts are found in folder [scripts/](scripts/). The resulting *in silico* predicted binders are then subjected to multiple developability filters in the R script [developability_filters.R](developability_filters.R).
 
 ### Table of contents
 
-1. [Overview](#overview)
-2. [Repository structure](#repository-structure)
-3. [Prepare working environment](#prepare-working-environment)
-4. [Models to test](#models-to-test)
-5. [Task list](#task-list)
-6. [Datasets used](#datasets-used)
----
-
-This github repository should be used to store and share useful scripts and analysis steps for the DMS+ML project.
-
-## Repository Structure
-
-The scripts folder should contain useful helper scripts that we want to reuse  several times. It also includes the data.py file which contains a fixed train/test split of the dataset. The data can be loaded via:
-```python
-from scripts.data import dms23
-
-# The train fold can be accessed like this (and is stored as a pandas dataframe)
-dms23.train
-
-# Test fold
-dms23.test
-
-# Complete dataset
-dms23.complete
-
-```
-The notebook directory contains all the results for each individual model. Eventually, we could create a summary file and put this in the main directory. The data folder contains the original .csv file Derek sent around. References can be used to store papers or documentation files of individual packages. The figures folder can be used to store figures produced during any of the analysis steps.
+1. [Prepare working environment](#prepare-working-environment)
+2. [Usage](#usage)
+3. [License](#license)
+4. [Citation](#citation)
 
 ## Prepare working environment
 
-In order to ensure that we are using the same packages and package versions, I suggest that we use conda as our environment + package manager. Conda makes it easy to load an environment from .yaml files via the following command:
+Before running any of the scripts, the necessary packages need to be installed. This is done with Conda, the open source package management system [[2](https://docs.conda.io/)], and the environment can be loaded via the provided [config.yaml](config.yaml) file, using following commands:
 
 ```
-conda env create -f config.yaml -n $Project_Name 
-```
-
-You can then load your new environment using:
-
-```
+conda env create -f config.yaml -n $Project_Name
 source activate $Project_Name
 ```
 
-If you want to install a new package, you can install it via conda like this:
+## Usage
 
-```
-conda install $PackageName
-```
+### Deep learning: Python scripts
 
-If you updated you environment, update the .yaml file via:
+The full deep learning analysis, written in Python, can be summarized into three consecutive steps:
 
-```
-conda env export > config.yaml
-```
+ 1. Compare classification performance of different machine learning models on rationally designed site-directed mutagenesis libraries.
+ 2. The best-performing model, a convolutional neural network (CNN), is tuned with a randomized search on hyper parameters.
+ 3. The optimized CNN model is used to identify antigen-binding sequences from an *in-silico* generated library.
 
-And push your new .yaml file to the repository. Just notify the rest of us on slack so that we can update our environments as well. I already included many packages in the original .yaml file, but feel free to add more packages if you need them.
+Step 1 and 3 are performed simultaneously, by running the following command:
 
-```
-source activate $Project_Name
-conda env update -f=config.yaml
-```
+`python scripts/main.py`
 
-## Models to test
+This will produce the folder [figures](figures/), where the performance of different models is visualized, and the folder [classification](classification/) with the CNN model summary and the predicted values for the *in-silico* generated library.
 
-- Logistic Regression (Bastian/Simon)
-- K-Nearest Neighbors (Derek/Cedric)
-- Support Vector Machine (Cedric)
-- Naive Bayes (Derek/Bastian)
-- Decision Tree/Random Forest/Gradient boosted trees (Simon)
-- RNN (Derek/Cedric)
-- CNN (Bastian/Simon)
-- Multi-layer Perceptron (Simon)
+Inside the main script, hyper parameters were already selected according to the optimized model. However, the randomized search can be run again:
 
-## Task list
+`python scripts/model_tuning.py`
 
-- [ ] Finish [overview](https://github.com/SimFri/DMS_Analysis/blob/master/notebooks/Overview.ipynb) notebook
-- [ ] Finish logistic regression notebook
-- [ ] Finish K-NN notebook
-- [ ] Finish SVM notebook
-- [ ] Finish Naive Bayes notebook
-- [ ] Finish Random Forest notebook
-- [ ] Finish RNN notebook
-- [ ] Finish CNN notebook
-- [ ] Finish MLP notebook
-- [ ] Simulate in-silico sequences
+A folder [model_tuning](model_tuning/) will be created, containing the best hyper paramter settings and the corresponding mean cross-validated score. Those parameters can then be included inside the main script (`params`).
+
+### Applying developability filters
+
+With the results from the previous analysis, developability filters can be applied to the *in silico* generated library:
+
+`R --vanilla < developability-filters.R`
+
+The developability filter based on CamSol solubility scores [[3](http://dx.doi.org/10.1016/j.jmb.2014.09.026)]-[[4](https://www.nature.com/articles/s41598-017-07800-w)] needs to be run on their [web server](http://www-mvsoftware.ch.cam.ac.uk/index.php/camsolintrinsic). Additionally, netMHCIIpan [[5](https://www.ncbi.nlm.nih.gov/pubmed/29315598)], version 3.2, needs to be downloaded and installed under following [link](https://services.healthtech.dtu.dk/service.php?NetMHCIIpan-3.2), otherwise the R script will terminate.
 
 ## Datasets used
 
@@ -107,11 +65,23 @@ DMS23_HEL3_High
 
 DMS23_HEL3_Low
 
-## Cite
----
+## [License](https://raw.githubusercontent.com/dahjan/DMS_opt/master/LICENSE.md)
 
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;[1] Mason, D., Friedensohn, S., Weber, C., Jordi, C., Wagner, B., Meng, S., Gainza, P., Correia, B., and Reddy, S. "Deep learning enables therapeutic antibody optimization in mammalian cells by deciphering high-dimensional protein sequence space." *bioRxiv* 617860 (**2019**)
+## Citation
+
+If you use the the code in this repository for your research, please cite our paper.
+
+```
+@article {Mason617860,
+	author = {Mason, Derek M and Friedensohn, Simon and Weber, C{\'e}dric R and Jordi, Christian and Wagner, Bastian and Meng, Simon and Gainza, Pablo and Correia, Bruno E and Reddy, Sai T},
+	title = {Deep learning enables therapeutic antibody optimization in mammalian cells by deciphering high-dimensional protein sequence space},
+	year = {2019},
+	doi = {10.1101/617860},
+	URL = {https://www.biorxiv.org/content/early/2019/05/30/617860},
+	journal = {bioRxiv}
+}
+```
 
 ## Authors
 
-Jan Dahinden, Derek Mason, Bastian Wagner, Cédric Weber, Simon Friedensohn, Sai Reddy
+Derek Mason, Jan Dahinden, Simon Friedensohn, Bastian Wagner, Cédric Weber, Sai Reddy
