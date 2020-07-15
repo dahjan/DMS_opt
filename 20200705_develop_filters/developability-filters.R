@@ -33,20 +33,13 @@ create_all_dirs()
 # # data sets
 # # ----------------------
 # 
-# # Load in the .csv output files from Python containing the amino acid sequences and prediction values
-# ANN_df <- read_csv("data/ANN_H3_all.csv") %>%
-#   select(AASeq, Pred)
+# # Load in the .csv output files from Python containing the
+# # amino acid sequences and prediction values
 # CNN_df <- read_csv("data/CNN_H3_all.csv") %>%
 #   select(AASeq, Pred)
 # 
 # # Filter out sequences with a prediction values less than 0.70
-# ANN_filt_pred <- filter(ANN_df, Pred > 0.70)
-# CNN_filt_pred <- filter(CNN_df, Pred > 0.70)
-# 
-# # Identify the consensus sequences between the two models
-# consensus <- inner_join(ANN_filt_pred, CNN_filt_pred, by = "AASeq") %>%
-#   dplyr::rename(ANN_pred = Pred.x, CNN_pred = Pred.y) %>%
-#   mutate(Avg_Pred = rowMeans(select(., c("ANN_pred", "CNN_pred"))))
+# consensus <- filter(CNN_df, Pred > 0.70)
 # 
 # # Pad amino acid sequences with 5' CSR residues and 3' YW residues
 # consensus$AASeq <- paste("CSR", consensus$AASeq, "YW", sep = "")
@@ -267,7 +260,7 @@ writeXStringSet(VH_fq2, "data/fasta/Ag_NetMHCII.fasta")
 
 # Read in NetMHC output
 # Only select ID and Rank information
-VH_netMHC_df <- read_tsv("data/netMHC/VH_NetMHCIIpan.txt", skip = 1) %>%
+VH_netMHC_df <- read_csv("data/netMHC/VH_NetMHCIIpan.csv") %>%
   select(ID, starts_with("Rank"))
 
 Ag_netMHC_df <- read_tsv("data/netMHC/Ag_NetMHCIIpan.txt", skip = 1) %>%
