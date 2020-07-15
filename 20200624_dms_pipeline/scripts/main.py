@@ -19,9 +19,7 @@ from KNN import KNN_classification
 from LSVM import LSVM_classification
 from SVM import SVM_classification
 from RF import RF_classification
-from ANN import ANN_classification
 from CNN import CNN_classification
-from RNN import RNN_classification
 
 # Import custom functions
 from utils import data_split, data_split_adj, \
@@ -55,7 +53,6 @@ mHER_H3_AgPos = load_input_data(ab_pos_files, Ag_class=1)
 mHER_H3_AgNeg.to_csv('data/mHER_H3_AgNeg.csv')
 mHER_H3_AgPos.to_csv('data/mHER_H3_AgPos.csv')
 
-"""
 
 # ----------------------
 # Run classifiers
@@ -142,7 +139,6 @@ for x in np.linspace(0, 10000, 11):
 # Save statistics to file
 ML_df.to_csv('figures/ML_increase_negs_combined.csv')
 
-"""
 
 # ----------------------
 # Run classifiers on in
@@ -163,33 +159,18 @@ params = [['CONV', 400, 5, 1],
           ['FLAT'],
           ['DENSE', 300]]
 
-# Train and test ANN and CNN with unadjusted (class split) data set
-ANN_all = ANN_classification(
-    mHER_H3_all, 'All_data', save_model=model_dir
-)
+# Train and test CNN with unadjusted (class split) data set
 CNN_all = CNN_classification(
     mHER_H3_all, 'All_data', save_model=model_dir, params=params
 )
-# RNN_all = RNN_classification(
-#     mHER_H3_all, 'All_data', save_model=model_dir
-# )
 
 # Generate CDRH3 sequences in silico and calculate their
 # prediction values if P(binder) > 0.5
 print('[INFO] Classifying in silico generated sequences')
-ANN_all_seq, ANN_all_pred = seq_classification(ANN_all, flatten_input=True)
 CNN_all_seq, CNN_all_pred = seq_classification(CNN_all)
-# RNN_all_seq, RNN_all_pred = seq_classification(RNN_all)
 print('[INFO] Done')
 
 # Write output to .csv file
-ANN_all_df = pd.DataFrame(
-    {'AASeq': ANN_all_seq, 'Pred': ANN_all_pred}, columns=['AASeq', 'Pred']
-)
-ANN_all_df.to_csv(
-    os.path.join(model_dir, 'ANN_H3_all.csv')
-)
-
 CNN_all_df = pd.DataFrame(
     {'AASeq': CNN_all_seq, 'Pred': CNN_all_pred}, columns=['AASeq', 'Pred']
 )
