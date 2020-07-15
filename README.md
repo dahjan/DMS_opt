@@ -1,5 +1,5 @@
 ![Python Version](https://img.shields.io/badge/Python%20Version-3.7.1-blue.svg)
-![R Version](https://img.shields.io/badge/R%20Version-3.6.0-green.svg)
+![R Version](https://img.shields.io/badge/R%20Version-3.6.1-green.svg)
 
 # Deep learning enables therapeutic antibody optimization in mammalian cells by deciphering high-dimensional protein sequence space
 
@@ -19,8 +19,8 @@ This repository contains the scripts to perform therapeutic antibody optimizatio
 Before running any of the scripts, the necessary packages need to be installed. This is done with Conda, the open source package management system [[2](https://docs.conda.io/)], and the environment can be loaded via the provided [config.yaml](config.yaml) file, using following commands:
 
 ```
-conda env create -f config.yaml -n $Project_Name
-source activate $Project_Name
+conda env create -f environment.yml
+source activate dms_env
 ```
 
 ## Usage

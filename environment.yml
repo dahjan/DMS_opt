@@ -1,4 +1,4 @@
-name: config_env
+name: dms_env
 channels:
   - r
   - anaconda
@@ -199,5 +199,5 @@ dependencies:
   - zipp=3.1.0=py_0
   - zlib=1.2.11=h7b6447c_3
   - zstd=1.4.4=h0b5b093_3
-prefix: /home/djan/anaconda3/envs/config_env
+prefix: /home/djan/anaconda3/envs/dms_env
 
