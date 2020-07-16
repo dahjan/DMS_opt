@@ -251,7 +251,7 @@ writeXStringSet(VH_fq2, "data/fasta/Ag_NetMHCII.fasta")
 
 # Read in NetMHC output
 # Only select ID and Rank information
-VH_netMHC_df <- read_csv("data/netMHC/VH_NetMHCIIpan.csv") %>%
+VH_netMHC_df <- read_tsv("data/netMHC/VH_NetMHCIIpan.txt", skip = 1) %>%
   select(ID, starts_with("Rank"))
 
 Ag_netMHC_df <- read_tsv("data/netMHC/Ag_NetMHCIIpan.txt", skip = 1) %>%
