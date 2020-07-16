@@ -19,6 +19,7 @@ from KNN import KNN_classification
 from LSVM import LSVM_classification
 from SVM import SVM_classification
 from RF import RF_classification
+from ANN import ANN_classification
 from CNN import CNN_classification
 
 # Import custom functions
@@ -175,5 +176,5 @@ CNN_all_df = pd.DataFrame(
     {'AASeq': CNN_all_seq, 'Pred': CNN_all_pred}, columns=['AASeq', 'Pred']
 )
 CNN_all_df.to_csv(
-    os.path.join(model_dir, 'CNN_H3_all.csv')
+    os.path.join('data/CNN_H3_all.csv')
 )
