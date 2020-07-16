@@ -28,89 +28,80 @@ create_global_variables()
 create_all_dirs()
 
 
-# # ----------------------
-# # Prepare classification
-# # data sets
-# # ----------------------
-# 
-# # Load in the .csv output files from Python containing the
-# # amino acid sequences and prediction values
-# CNN_df <- read_csv("classification/CNN_H3_all.csv") %>%
-#   select(AASeq, Pred)
-# 
-# # Filter out sequences with a prediction values less than 0.70
-# consensus <- filter(CNN_df, Pred > 0.70)
-# 
-# # Pad amino acid sequences with 5' CSR residues and 3' YW residues
-# consensus$AASeq <- paste("CSR", consensus$AASeq, "YW", sep = "")
-# 
-# # Calculate the net charge of the amino acid sequence and add the net charge of the entire VH sequence minus CDRH3
-# consensus <- consensus %>%
-#   mutate(VHNetCharge = sapply(AASeq, function(x) net_charge(x)) +  net_charge(Her_VH_mCDR3),
-#          FabNetCharge = VHNetCharge + net_charge(Her_VK),
-#          FvCSP = VHNetCharge * net_charge(Her_VK))
-# 
-# # Calculate the hydrophobicity index
-# consensus <- consensus %>%
-#   mutate(CDR3_HI = sapply(AASeq, function(x) HIndex(x)),
-#          HISum = CDR3_HI + HIndex(Her_CDRL1) + HIndex(Her_CDRL3))
-# 
-# # Calculate the Levenshtein distance from the wild-type CDRH3 to CDRH3 variants
-# consensus$LD <- sapply(consensus$AASeq, function(x) stringdist(x, Her_CDRH3, method = "lv"))
-# 
-# # Pad CDR3 sequences with +/-10 amino acids for use with CamSol and NetMHCIIpan
-# consensus <- consensus %>%
-#   mutate(paddedAA = paste(substr(Her_VH, gregexpr("C[ASTV][KRST]", Her_VH)[[1]] - 10,
-#                                  gregexpr("C[ASTV][KRST]", Her_VH)[[1]] - 1),
-#                           AASeq, substr(Her_VH, gregexpr("WGQG", Her_VH)[[1]] + 1,
-#                                         gregexpr("WGQG", Her_VH)[[1]] + 10), sep = ""))
-# 
-# 
-# # ----------------------
-# # Prepare data of
-# # binding sequences
-# # ----------------------
-# 
-# # Load binding sequences
-# AgPos_df <- read_csv("data/mHER_H3_AgPos.csv") %>%
-#   select(-X1)
-# 
-# # Remove duplicated sequences
-# AgPos_df <- AgPos_df %>%
-#   distinct(AASeq, .keep_all = TRUE)
-# 
-# # Pad amino acid sequences with 5' CSR residues and 3' YW residues
-# AgPos_df$AASeq <- paste("CSR", AgPos_df$AASeq, "YW", sep = "")
-# 
-# # Calculate the Fab net charge, FvCSP, and L1+L3+H3 hydrophobicity index sum
-# AgPos_df <- AgPos_df %>%
-#   mutate(VHNetCharge = sapply(AASeq, function(x) net_charge(x)) + net_charge(Her_VH_mCDR3),
-#          FabNetCharge = VHNetCharge + net_charge(Her_VK),
-#          FvCSP = VHNetCharge*net_charge(Her_VK))
-# 
-# # Calculate the hydrophobicity index
-# AgPos_df <- AgPos_df %>%
-#   mutate(CDR3_HI = sapply(AASeq, function(x) HIndex(x)),
-#          HISum = CDR3_HI + HIndex(Her_CDRL1) + HIndex(Her_CDRL3))
-# 
-# # Calculate the Levenshtein distance from the wild-type CDRH3 to CDRH3 variants
-# AgPos_df$LD <- sapply(AgPos_df$AASeq, function(x) stringdist(x, Her_CDRH3, method = "lv"))
-# 
-# # Pad CDR3 sequences with +/-10 amino acids for use with CamSol and NetMHCIIpan
-# AgPos_df <- AgPos_df %>%
-#   mutate(paddedAA = paste(substr(Her_VH, gregexpr("C[ASTV][KRST]", Her_VH)[[1]] - 10,
-#                                  gregexpr("C[ASTV][KRST]", Her_VH)[[1]] - 1),
-#                           AASeq, substr(Her_VH, gregexpr("WGQG", Her_VH)[[1]] + 1,
-#                                         gregexpr("WGQG", Her_VH)[[1]] + 10), sep = ""))
-# 
-# # Save dataframes
-# consensus %>%
-#   write_csv(., "data/df_consensus.csv")
-# AgPos_df %>%
-#   write_csv(., "data/df_AgPos.csv")
+# ----------------------
+# Prepare classification
+# data sets
+# ----------------------
 
-consensus <- read_csv("data/df_consensus.csv")
-AgPos_df <- read_csv("data/df_AgPos.csv")
+# Load in the .csv output files from Python containing the
+# amino acid sequences and prediction values
+CNN_df <- read_csv("data/CNN_H3_all.csv") %>%
+  select(AASeq, Pred)
+
+# Filter out sequences with a prediction values less than 0.70
+consensus <- filter(CNN_df, Pred > 0.70)
+
+# Pad amino acid sequences with 5' CSR residues and 3' YW residues
+consensus$AASeq <- paste("CSR", consensus$AASeq, "YW", sep = "")
+
+# Calculate the net charge of the amino acid sequence and add the net charge of the entire VH sequence minus CDRH3
+consensus <- consensus %>%
+  mutate(VHNetCharge = sapply(AASeq, function(x) net_charge(x)) +  net_charge(Her_VH_mCDR3),
+         FabNetCharge = VHNetCharge + net_charge(Her_VK),
+         FvCSP = VHNetCharge * net_charge(Her_VK))
+
+# Calculate the hydrophobicity index
+consensus <- consensus %>%
+  mutate(CDR3_HI = sapply(AASeq, function(x) HIndex(x)),
+         HISum = CDR3_HI + HIndex(Her_CDRL1) + HIndex(Her_CDRL3))
+
+# Calculate the Levenshtein distance from the wild-type CDRH3 to CDRH3 variants
+consensus$LD <- sapply(consensus$AASeq, function(x) stringdist(x, Her_CDRH3, method = "lv"))
+
+# Pad CDR3 sequences with +/-10 amino acids for use with CamSol and NetMHCIIpan
+consensus <- consensus %>%
+  mutate(paddedAA = paste(substr(Her_VH, gregexpr("C[ASTV][KRST]", Her_VH)[[1]] - 10,
+                                 gregexpr("C[ASTV][KRST]", Her_VH)[[1]] - 1),
+                          AASeq, substr(Her_VH, gregexpr("WGQG", Her_VH)[[1]] + 1,
+                                        gregexpr("WGQG", Her_VH)[[1]] + 10), sep = ""))
+
+
+# ----------------------
+# Prepare data of
+# binding sequences
+# ----------------------
+
+# Load binding sequences
+AgPos_df <- read_csv("data/mHER_H3_AgPos.csv") %>%
+  select(-X1)
+
+# Remove duplicated sequences
+AgPos_df <- AgPos_df %>%
+  distinct(AASeq, .keep_all = TRUE)
+
+# Pad amino acid sequences with 5' CSR residues and 3' YW residues
+AgPos_df$AASeq <- paste("CSR", AgPos_df$AASeq, "YW", sep = "")
+
+# Calculate the Fab net charge, FvCSP, and L1+L3+H3 hydrophobicity index sum
+AgPos_df <- AgPos_df %>%
+  mutate(VHNetCharge = sapply(AASeq, function(x) net_charge(x)) + net_charge(Her_VH_mCDR3),
+         FabNetCharge = VHNetCharge + net_charge(Her_VK),
+         FvCSP = VHNetCharge*net_charge(Her_VK))
+
+# Calculate the hydrophobicity index
+AgPos_df <- AgPos_df %>%
+  mutate(CDR3_HI = sapply(AASeq, function(x) HIndex(x)),
+         HISum = CDR3_HI + HIndex(Her_CDRL1) + HIndex(Her_CDRL3))
+
+# Calculate the Levenshtein distance from the wild-type CDRH3 to CDRH3 variants
+AgPos_df$LD <- sapply(AgPos_df$AASeq, function(x) stringdist(x, Her_CDRH3, method = "lv"))
+
+# Pad CDR3 sequences with +/-10 amino acids for use with CamSol and NetMHCIIpan
+AgPos_df <- AgPos_df %>%
+  mutate(paddedAA = paste(substr(Her_VH, gregexpr("C[ASTV][KRST]", Her_VH)[[1]] - 10,
+                                 gregexpr("C[ASTV][KRST]", Her_VH)[[1]] - 1),
+                          AASeq, substr(Her_VH, gregexpr("WGQG", Her_VH)[[1]] + 1,
+                                        gregexpr("WGQG", Her_VH)[[1]] + 10), sep = ""))
 
 
 # ----------------------
@@ -127,10 +118,10 @@ tmp <- AgPos_df %>%
   mutate(data = "Experimental")
 Fv_data <- rbind(Fv_data, tmp)
 
-# Trastuzumab edit distance
+# Levenshtein distance
 ggplot(data = Fv_data, aes(LD, fill = data, color = data)) +
-  plot_geom_histogram(binwidth = 1, title = "Trastuzumab Edit Distance",
-                      x_lab = "Edit Distance", lim = c(1,1e7))
+  plot_geom_histogram(binwidth = 1, title = "Levenshtein Distance",
+                      x_lab = "LD", lim = c(1,1e7))
 ggsave("figures/final/VH_Edit-Dist.pdf", width = 5.08, height = 3.8)
 
 # FvCSP distribution
@@ -201,7 +192,7 @@ AgPos_filt_hi <- inner_join(AgPos_filt_hi, Ag_CamSol_df,
 len_after = dim(AgPos_filt_hi)[1]
 
 # Assert that length of dataframe has not changed
-stopifnot("Data lost/added during join operation 1." = (len_before == len_after))
+stopifnot("Data lost/added in CamSol score (A)." = (len_before == len_after))
 
 # Load the CamSol input file from Pietro Sormanni
 CamSol_df <- read_csv("data/camsol/VH_CamSol.csv") %>%
@@ -213,7 +204,7 @@ consensus_filt_hi <- inner_join(consensus_filt_hi, CamSol_df, by = "AASeq")
 len_after = dim(consensus_filt_hi)[1]
 
 # Assert that length of dataframe has not changed
-stopifnot("Data lost/added during join operation 2." = (len_before == len_after))
+stopifnot("Data lost/added in CamSol score (B)." = (len_before == len_after))
 
 
 # ----------------------
@@ -265,6 +256,12 @@ VH_netMHC_df <- read_csv("data/netMHC/VH_NetMHCIIpan.csv") %>%
 
 Ag_netMHC_df <- read_tsv("data/netMHC/Ag_NetMHCIIpan.txt", skip = 1) %>%
   select(ID, starts_with("Rank"))
+
+# Assert that all sequences are present
+stopifnot("Data lost/added in NetMHCII score (A)." =
+          (dim(consensus_filt_cs)[1] == length(unique(VH_netMHC_df$ID))))
+stopifnot("Data lost/added in NetMHCII score (B)." =
+            (dim(AgPos_filt_cs)[1] == length(unique(Ag_netMHC_df$ID))))
 
 # Save unique IDs
 VH_netMHC_unique <- unique(VH_netMHC_df$ID)
@@ -424,4 +421,45 @@ Consensus_overall2 <- Consensus_overall2 %>%
 
 # Save CSV file
 Consensus_overall2 %>%
-  write_csv(., "data/Pred_all.csv")
+  write_csv("data/Pred_all.csv")
+
+
+# ----------------------
+# Generate txt file:
+# 6i
+# ----------------------
+
+# Set parameters used for printing txt file
+out_file <- "figures/final/n_remain_seqs.txt"
+border <- paste(rep("-", 55), collapse = "")
+ws <- paste(rep(" ", 20), collapse = "")
+len_filt1 <- format(dim(CNN_df)[1], big.mark=",")
+len_filt2 <- format(dim(consensus)[1], big.mark=",")
+len_filt3 <- format(dim(consensus_filt_hi)[1], big.mark=",")
+len_filt4 <- format(dim(consensus_filt_cs)[1], big.mark=",")
+len_filt5 <- format(dim(consensus_filt_avgMHC)[1], big.mark=",")
+
+# Write txt file
+write(border, out_file)
+write("Filtering Parameters \t \t No. Predicted Binders",
+      out_file, append=TRUE)
+write(border, out_file, append=TRUE)
+write(paste0("CNN P(binder) > 0.50", ws, len_filt1),
+      out_file, append=TRUE)
+write(border, out_file, append=TRUE)
+write(paste0("CNN P(binder) > 0.70", ws, len_filt2),
+      out_file, append=TRUE)
+write(border, out_file, append=TRUE)
+write("FvCSP > 6.61", out_file, append=TRUE)
+write(paste0("Fv charge < 6.2 \t \t", ws, len_filt3),
+      out_file, append=TRUE)
+write("HI Sum > 0, < 4", out_file, append=TRUE)
+write(border, out_file, append=TRUE)
+write(paste0("Solubility score > 0.5", ws, len_filt4),
+      out_file, append=TRUE)
+write(border, out_file, append=TRUE)
+write("Minimum % Rank > 5.5", out_file, append=TRUE)
+write(paste0("No. 15-mers w/ % Rank < 10 <= 2 \t \t \t", len_filt5),
+      out_file, append=TRUE)
+write("Average % Rank > 60.6", out_file, append=TRUE)
+write(border, out_file, append=TRUE)
