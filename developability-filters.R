@@ -387,8 +387,8 @@ Overall <- Overall %>%
          CamSol = (CamSol - min(CamSol))/(max(CamSol - min(CamSol))),
          CamSol = CamSol * 2,
          avgNetMHC = (avgNetMHC - min(avgNetMHC))/(max(avgNetMHC - min(avgNetMHC))),
-         Sum = rowSums(select(., .dots = c(FvCSP, CamSol, NminNetMHC))),
-         Mean = rowMeans(select(., .dots = c(FvCSP, CamSol, NminNetMHC)))
+         Sum = rowSums(select(., .dots = c(FvCSP, CamSol, avgNetMHC))),
+         Mean = rowMeans(select(., .dots = c(FvCSP, CamSol, avgNetMHC)))
   )
 
 # Make separate dataframe for Predicted and Experimental
@@ -398,13 +398,12 @@ Ag_overall2 <- filter(Overall, data == "Experimental\nBinders")
 # Generate combined violin/scatter plot to view
 # the distribution of the developability score
 ggplot(data = Consensus_overall2, aes(x = data, y = Mean, fill = data)) +
-  geom_violin(show.legend = FALSE) +
+  geom_violin(show.legend = FALSE, fill="grey") +
   geom_point(data = Ag_overall2, aes(x = data, y = Mean, fill = data),
              position = position_jitterdodge(jitter.width = 0.37),
              show.legend = FALSE) +
   labs(title = "Overall Developability Score") +
   labs(x = "", y = "Developability Score") +
-  scale_color_grey() + scale_fill_grey() +
   theme_bw(base_size = 18)
 ggsave("figures/final/VH_overall_combined.pdf", width = 5.08, height = 3.8)
 
@@ -415,8 +414,8 @@ Consensus_overall2 <- Consensus_overall2 %>%
          CamSol = (CamSol - min(CamSol))/(max(CamSol - min(CamSol))),
          CamSol = CamSol * 2,
          avgNetMHC = (avgNetMHC - min(avgNetMHC))/(max(avgNetMHC - min(avgNetMHC))),
-         Sum = rowSums(select(., .dots = c(FvCSP, CamSol, NminNetMHC))),
-         Mean = rowMeans(select(., .dots = c(FvCSP, CamSol, NminNetMHC)))
+         Sum = rowSums(select(., .dots = c(FvCSP, CamSol, avgNetMHC))),
+         Mean = rowMeans(select(., .dots = c(FvCSP, CamSol, avgNetMHC)))
   )
 
 # Save CSV file
