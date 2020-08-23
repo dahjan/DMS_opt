@@ -104,6 +104,14 @@ AgPos_df <- AgPos_df %>%
                                         gregexpr("WGQG", Her_VH)[[1]] + 10), sep = ""))
 
 
+###############################
+
+consensus <- read_csv("data/df_consensus.csv")
+AgPos_df <- read_csv("data/df_AgPos.csv")
+
+###############################
+
+
 # ----------------------
 # Generate figures:
 # 6a and 6b
@@ -386,8 +394,10 @@ Overall <- Overall %>%
   mutate(FvCSP = (FvCSP - min(FvCSP))/(max(FvCSP - min(FvCSP))),
          CamSol = (CamSol - min(CamSol))/(max(CamSol - min(CamSol))),
          CamSol = CamSol * 2,
-         avgNetMHC = (avgNetMHC - min(avgNetMHC))/(max(avgNetMHC - min(avgNetMHC))),
-         Sum = rowSums(select(., .dots = c(FvCSP, CamSol, avgNetMHC))),
+         avgNetMHC = (avgNetMHC - min(avgNetMHC))/(max(avgNetMHC - min(avgNetMHC)))
+  )
+Overall <- Overall %>%
+  mutate(Sum = rowSums(select(., .dots = c(FvCSP, CamSol, avgNetMHC))),
          Mean = rowMeans(select(., .dots = c(FvCSP, CamSol, avgNetMHC)))
   )
 
@@ -413,8 +423,10 @@ Consensus_overall2 <- Consensus_overall2 %>%
   mutate(FvCSP = (FvCSP - min(FvCSP))/(max(FvCSP - min(FvCSP))),
          CamSol = (CamSol - min(CamSol))/(max(CamSol - min(CamSol))),
          CamSol = CamSol * 2,
-         avgNetMHC = (avgNetMHC - min(avgNetMHC))/(max(avgNetMHC - min(avgNetMHC))),
-         Sum = rowSums(select(., .dots = c(FvCSP, CamSol, avgNetMHC))),
+         avgNetMHC = (avgNetMHC - min(avgNetMHC))/(max(avgNetMHC - min(avgNetMHC)))
+  )
+Consensus_overall2 <- Consensus_overall2 %>%
+  mutate(Sum = rowSums(select(., .dots = c(FvCSP, CamSol, avgNetMHC))),
          Mean = rowMeans(select(., .dots = c(FvCSP, CamSol, avgNetMHC)))
   )
 
