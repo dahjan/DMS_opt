@@ -21,6 +21,7 @@ from SVM import SVM_classification
 from RF import RF_classification
 from ANN import ANN_classification
 from CNN import CNN_classification
+from RNN import RNN_classification
 
 # Import custom functions
 from utils import data_split, data_split_adj, \

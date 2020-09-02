@@ -38,7 +38,7 @@ def load_input_data(filenames, Ag_class):
     l_data = []
     for file in filenames:
         l_data.append(
-            mixcr_input('data/' + file, Ag_class)
+            mixcr_input('data/' + file, Ag_class, seq_len=15)
         )
     mHER_H3 = pd.concat(l_data)
 
@@ -54,7 +54,42 @@ def load_input_data(filenames, Ag_class):
     return mHER_H3
 
 
-def mixcr_input(file_name, Ag_class):
+def load_input_data_L3(filenames, Ag_class):
+    """
+    Load the files specified in filenames.
+
+    Parameters
+    ---
+    filenames: a list of names that specify the files to
+        be loaded.
+
+    Ag_class: classification of sequences from MiXCR txt file
+               (i.e., antigen binder = 1, non-binder = 0)
+    """
+
+    # Combine the non-binding sequence data sets.
+    # Non-binding data sets include Ab+ data and Ag-
+    # sorted data for all 3 libraries
+    l_data = []
+    for file in filenames:
+        l_data.append(
+            mixcr_input('data/' + file, Ag_class, seq_len=11)
+        )
+    mHER_L3 = pd.concat(l_data)
+
+    # Drop duplicate sequences
+    mHER_L3 = mHER_L3.drop_duplicates(subset='AASeq')
+
+    # Remove first and last amino acids
+    mHER_L3['AASeq'] = [x[1:-1] for x in mHER_L3['AASeq']]
+
+    # Shuffle sequences and reset index
+    mHER_L3 = mHER_L3.sample(frac=1).reset_index(drop=True)
+
+    return mHER_L3
+
+
+def mixcr_input(file_name, Ag_class, seq_len):
     """
     Read in data from the MiXCR txt output file
 
@@ -64,6 +99,9 @@ def mixcr_input(file_name, Ag_class):
 
     Ag_class: classification of sequences from MiXCR txt file
                (i.e., antigen binder = 1, non-binder = 0)
+
+    seq_len: the length of sequences; other lengths will be
+             removed.
     """
 
     # Read data and rename columns
@@ -76,7 +114,7 @@ def mixcr_input(file_name, Ag_class):
     })
 
     # Select length and drop duplicate sequences
-    x = x[(x.AASeq.str.len() == 15) & (x.Count > 1)]
+    x = x[(x.AASeq.str.len() == seq_len) & (x.Count > 1)]
     x = x.drop_duplicates(subset='AASeq')
 
     # Remove stop codons and incomplete codon sequences (*, _)
@@ -160,7 +198,7 @@ def data_split(Ag_pos, Ag_neg):
         idx, stratify=Ag_combined['AgClass'], test_size=0.3
     )
 
-    # 50%/50% training test data split
+    # 50%/50% test validation data split
     idx2 = np.arange(0, idx_test.shape[0])
     idx_val, idx_test2 = train_test_split(
         idx2, stratify=Ag_combined.iloc[idx_test, :]['AgClass'], test_size=0.5
@@ -183,6 +221,74 @@ def data_split(Ag_pos, Ag_neg):
                                                   :].iloc[idx_val, :],
                              test=Updated_test,
                              complete=Ag_combined)
+
+    return Seq_Ag_data
+
+
+def data_split_L3(Ag_pos, Ag_neg):
+    """
+    Create a collection of the data set and split into
+    training and test sets. The training set contains
+    70%, the test set 30% of all data. The larger class
+    in the data set is subsampled, so that there are an
+    equal number of Ag, and Ag- sequences.
+
+    Parameters
+    ---
+    Ag_pos: Dataframe of the Ag+ data set
+
+    Ag_neg: Dataframe of the Ag- data set
+
+    fraction: The desired fraction of Ag+ in the data set
+    """
+
+    class Collection:
+        def __init__(self, **kwds):
+            self.__dict__.update(kwds)
+
+    # Combine the positive and negative data frames
+    Ag_combined = pd.concat([Ag_pos, Ag_neg])
+    Ag_combined = Ag_combined.drop_duplicates(subset='AASeq')
+    Ag_combined = Ag_combined.sample(frac=1).reset_index(drop=True)
+
+    print("Class distribution before subsampling of larger class:")
+    print(Ag_combined.AgClass.value_counts())
+
+    # Get number of binding and non-binding sequences
+    non_dupl = Ag_combined.AgClass.value_counts()
+    size_neg = non_dupl[0]
+    size_pos = non_dupl[1]
+
+    # Subsample the larger class
+    if size_pos <= size_neg:
+        neg_idx = np.where(Ag_combined.AgClass == 0)
+        rm_idx = np.random.choice(
+            neg_idx[0], size=size_neg-size_pos, replace=False
+        )
+    else:
+        pos_idx = np.where(Ag_combined.AgClass == 1)
+        rm_idx = np.random.choice(
+            pos_idx[0], size=size_pos-size_neg, replace=False
+        )
+
+    # Drop sequences of larger class from dataset
+    Ag_combined1 = Ag_combined.drop(rm_idx)
+
+    print("Class distribution after subsampling of larger class:")
+    print(Ag_combined1.AgClass.value_counts())
+
+    # 70%/30% training test data split
+    idx = np.arange(0, Ag_combined1.shape[0])
+    idx_train, idx_test = train_test_split(
+        idx, stratify=Ag_combined1['AgClass'], test_size=0.3
+    )
+
+    # Create collection
+    Seq_Ag_data = Collection(
+        train=Ag_combined1.iloc[idx_train, :],
+        test=Ag_combined1.iloc[idx_test, :],
+        complete=Ag_combined1
+    )
 
     return Seq_Ag_data
 
@@ -242,13 +348,13 @@ def data_split_adj(Ag_pos, Ag_neg, fraction):
     Ag_combined = Ag_combined.drop_duplicates(subset='AASeq')
     Ag_combined = Ag_combined.sample(frac=1).reset_index(drop=True)
 
-    # 70/30 training test data split
+    # 70%/30% training test data split
     idx = np.arange(0, Ag_combined.shape[0])
     idx_train, idx_test = train_test_split(
         idx, stratify=Ag_combined['AgClass'], test_size=0.3
     )
 
-    # 50/50 training test data split
+    # 50%/50% test validation data split
     idx2 = np.arange(0, idx_test.shape[0])
     idx_val, idx_test2 = train_test_split(
         idx2, stratify=Ag_combined.iloc[idx_test, :]['AgClass'], test_size=0.5
@@ -403,7 +509,8 @@ def create_ann():
     return model
 
 
-def create_cnn(units_per_layer, activation, regularizer):
+def create_cnn(units_per_layer, input_shape,
+               activation, regularizer):
     """
     Generate the CNN layers with a Keras wrapper.
 
@@ -416,6 +523,8 @@ def create_cnn(units_per_layer, activation, regularizer):
         Flatten: [FLAT]
         Dense layer: [DENSE, number nodes]
 
+    input_shape: a tuple defining the input shape of the data
+
     activation: Activation function, i.e. ReLU, softmax
 
     regularizer: Kernel and bias regularizer in convulational and dense
@@ -426,7 +535,7 @@ def create_cnn(units_per_layer, activation, regularizer):
     model = keras.Sequential()
 
     # Input layer
-    model.add(keras.layers.InputLayer((10, 20)))
+    model.add(keras.layers.InputLayer(input_shape))
 
     # Build network
     for i, units in enumerate(units_per_layer):
