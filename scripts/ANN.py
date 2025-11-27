@@ -1,14 +1,16 @@
 # Import libraries
 import os
 import numpy as np
-from Bio.Alphabet import IUPAC
-from keras.optimizers import Adam
+# from Bio.Alphabet import IUPAC  <-- REMOVED (Deprecated)
+from tensorflow.keras.optimizers import Adam # <-- UPDATED for modern Tensorflow
 from contextlib import redirect_stdout
 
 # Import custom functions
 from utils import one_hot_encoder, create_ann, \
     plot_ROC_curve, plot_PR_curve, calc_stat
 
+# Define the protein alphabet manually since Bio.Alphabet is removed
+PROTEIN_ALPHABET = "ACDEFGHIKLMNPQRSTVWY"
 
 def ANN_classification(dataset, filename, save_model=False):
     """
@@ -37,13 +39,16 @@ def ANN_classification(dataset, filename, save_model=False):
     X_val = dataset.val.loc[:, 'AASeq'].values
 
     # One hot encode the sequences
-    X_train = [one_hot_encoder(s=x, alphabet=IUPAC.protein) for x in X_train]
+    # UPDATED: Using PROTEIN_ALPHABET string instead of IUPAC.protein
+    X_train = [one_hot_encoder(s=x, alphabet=PROTEIN_ALPHABET) for x in X_train]
     X_train = [x.flatten('F') for x in X_train]
     X_train = np.asarray(X_train)
-    X_test = [one_hot_encoder(s=x, alphabet=IUPAC.protein) for x in X_test]
+    
+    X_test = [one_hot_encoder(s=x, alphabet=PROTEIN_ALPHABET) for x in X_test]
     X_test = [x.flatten('F') for x in X_test]
     X_test = np.asarray(X_test)
-    X_val = [one_hot_encoder(s=x, alphabet=IUPAC.protein) for x in X_val]
+    
+    X_val = [one_hot_encoder(s=x, alphabet=PROTEIN_ALPHABET) for x in X_val]
     X_val = [x.flatten('F') for x in X_val]
     X_val = np.asarray(X_val)
 
@@ -56,6 +61,7 @@ def ANN_classification(dataset, filename, save_model=False):
     ANN_classifier = create_ann()
 
     # Compiling the ANN
+    # Note: Learning rate is small, suitable for fine-tuning or noisy data
     ada_optimizer = Adam(learning_rate=0.0001)
     ANN_classifier.compile(
         optimizer=ada_optimizer, loss='binary_crossentropy',
